@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "open3d-box-detection"
+version = "0.0.1"
+dependencies = [
+    "numpy ~= 2",
+    "open3d >= 0.19, < 0.20",
+]
+
+[project.scripts]
+detect-box = "open3d_box_detection:main"
