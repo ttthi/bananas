@@ -42,3 +42,13 @@ target_link_libraries(store_clouds PRIVATE
   depthai::all
   ${PCL_LIBRARIES}
   ${OpenCV_LIBS})
+
+find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+add_executable(test_imu test_imu.cpp)
+target_compile_features(test_imu PUBLIC cxx_std_20)
+set_target_properties(test_imu PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_options(test_imu PRIVATE -Wall -Wextra -Wpedantic)
+
+target_link_libraries(test_imu PRIVATE
+  depthai::core
+  Eigen3::Eigen)
