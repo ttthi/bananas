@@ -6,7 +6,7 @@ project(ArucoSimulation VERSION 1.0
 # OpenCV depends on the deprecated FindCUDA for some reason
 cmake_policy(SET CMP0146 OLD)
 
-find_package(OpenCV CONFIG REQUIRED core objdetect imgcodecs highgui calib3d)
+find_package(OpenCV CONFIG REQUIRED core objdetect videoio highgui calib3d)
 
 add_executable(generate_board generate_board.cpp)
 target_compile_features(generate_board PUBLIC cxx_std_17)
