@@ -73,10 +73,11 @@ auto detect_markers(const cv::aruco::Dictionary &dictionary,
     const cv::aruco::ArucoDetector detector{dictionary, {}};
 
     std::vector<std::vector<cv::Point2f>> corners{};
+    std::vector<std::vector<cv::Point2f>> rejected{};
     std::vector<int> ids{};
-    detector.detectMarkers(image, corners, ids);
-
-    // TODO(vainiovano): refine
+    detector.detectMarkers(image, corners, ids, rejected);
+    detector.refineDetectedMarkers(image, board, corners, ids, rejected,
+                                   camera_matrix, {});
 
     cv::Vec3d rvec;
     cv::Vec3d tvec;
