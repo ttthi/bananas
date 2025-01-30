@@ -1,10 +1,10 @@
-#include <cstddef>
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
 #include <numeric>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/mat.hpp>
@@ -13,17 +13,16 @@
 #include <opencv2/core/types.hpp>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/imgcodecs.hpp>
 #include <opencv2/objdetect/aruco_board.hpp>
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/objdetect/aruco_dictionary.hpp>
-#include <vector>
+#include <opencv2/videoio.hpp>
 
 namespace {
 
 const char *const about{"TODO"};
 const char *const keys{
-    "{@infile  |<none> | Input image }"
+    "{@infile  |<none> | Input video }"
     "{w        |       | Number of markers in X direction }"
     "{h        |       | Number of markers in Y direction }"
     "{l        |       | Marker side length }"
@@ -67,8 +66,9 @@ auto form_board(const cv::aruco::Dictionary &dictionary,
     return board;
 }
 
-void detect_markers(const cv::aruco::Dictionary &dictionary,
-                    const cv::aruco::Board &board, const cv::Mat &image) {
+auto detect_markers(const cv::aruco::Dictionary &dictionary,
+                    const cv::aruco::Board &board, const cv::Mat &image)
+    -> cv::Mat {
     // TODO(vainiovano): configurable detector parameters
     const cv::aruco::ArucoDetector detector{dictionary, {}};
 
@@ -78,18 +78,6 @@ void detect_markers(const cv::aruco::Dictionary &dictionary,
 
     // TODO(vainiovano): refine
 
-    // TODO(vainiovano): drop, shitty code
-    std::vector<int> new_ids{};
-    std::vector<std::vector<cv::Point2f>> new_corners{};
-    for (std::size_t i = 0; i < ids.size(); ++i) {
-        if (ids[i] < 25) {
-            new_ids.push_back(ids[i]);
-            new_corners.push_back(corners[i]);
-        }
-    }
-    ids = new_ids;
-    corners = new_corners;
-
     cv::Vec3d rvec;
     cv::Vec3d tvec;
     bool board_detected{false};
@@ -97,11 +85,8 @@ void detect_markers(const cv::aruco::Dictionary &dictionary,
         cv::Mat object_points;
         cv::Mat image_points;
         board.matchImagePoints(corners, ids, object_points, image_points);
-        std::cout << camera_matrix << '\n';
-        std::cout << object_points << '\n';
         cv::solvePnP(object_points, image_points, camera_matrix, {}, rvec,
                      tvec);
-        std::cout << tvec << '\n';
         board_detected = !object_points.empty();
     }
 
@@ -113,10 +98,25 @@ void detect_markers(const cv::aruco::Dictionary &dictionary,
     if (board_detected) {
         cv::drawFrameAxes(render_image, camera_matrix, {}, rvec, tvec, 0.001F);
     }
+    return render_image;
+}
 
-    cv::imshow("out", render_image);
-    while (cv::waitKey() != 27) {
-    }
+/// Returns true if the user wants to exit the application. Handles pausing and
+/// blocks until the user unpauses.
+auto handle_keys() -> bool {
+    bool paused{false};
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-do-while)
+    do {
+        const int key{cv::waitKey(paused ? 0 : 60)};
+        // \033 ESC
+        if (key == '\033' || key == 'q') {
+            return true;
+        }
+        if (key == ' ') {
+            paused = !paused;
+        }
+    } while (paused);
+    return false;
 }
 
 } // namespace
@@ -130,15 +130,13 @@ auto main(int argc, char *argv[]) -> int {
     const auto ground_plane_marker_side{parser.get<float>("l")};
     const auto ground_plane_marker_separation{parser.get<float>("s")};
     const auto dictionary_file{parser.get<std::string>("cd")};
-    const auto image_file{parser.get<std::string>(0)};
+    const auto video_file{parser.get<std::string>(0)};
 
     if (!parser.check()) {
         parser.printErrors();
         parser.printMessage();
         return EXIT_FAILURE;
     }
-
-    const cv::Mat image{cv::imread(image_file)};
 
     cv::aruco::Dictionary dictionary{};
     try {
@@ -155,7 +153,18 @@ auto main(int argc, char *argv[]) -> int {
         0};
     const auto board{form_board(dictionary, ground_settings)};
 
-    detect_markers(dictionary, board, image);
+    cv::VideoCapture capture{video_file};
+    cv::Mat image{};
+    while (capture.isOpened()) {
+        const bool got_frame{capture.read(image)};
+        if (!got_frame) {
+            break;
+        }
 
-    return EXIT_SUCCESS;
+        const auto marker_image{detect_markers(dictionary, board, image)};
+        cv::imshow("out", marker_image);
+        if (handle_keys()) {
+            break;
+        };
+    }
 }
