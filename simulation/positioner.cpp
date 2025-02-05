@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <cstdlib>
 #include <functional>
 #include <initializer_list>
@@ -13,9 +14,13 @@
 #include <utility>
 #include <vector>
 
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+
 #include <gsl/span>
 
 #include <opencv2/calib3d.hpp>
+#include <opencv2/core/eigen.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/matx.hpp>
 #include <opencv2/core/persistence.hpp>
@@ -26,6 +31,9 @@
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/objdetect/aruco_dictionary.hpp>
 #include <opencv2/videoio.hpp>
+
+#include "affine_rotation.h"
+#include "visualization/visualizer.h"
 
 namespace {
 
@@ -269,6 +277,7 @@ auto main(int argc, char *argv[]) -> int {
     cv::CommandLineParser parser{argc, argv, keys};
     parser.about(about);
 
+    visualizer::Visualizer visualizer{};
     const auto ground_plane_width{parser.get<int>("w")};
     const auto ground_plane_height{parser.get<int>("h")};
     const auto ground_plane_marker_side{parser.get<float>("l")};
@@ -315,9 +324,22 @@ auto main(int argc, char *argv[]) -> int {
         make_cube_settings(cube_side, cube_margin, cube_ids_from(37))};
     auto cube3_board{form_box_board(dictionary, cube3_settings)};
 
+    const float plane_width{
+        static_cast<float>(ground_plane_width) *
+        (ground_plane_marker_side + ground_plane_marker_separation)};
+    const float plane_height{
+        static_cast<float>(ground_plane_height) *
+        (ground_plane_marker_side + ground_plane_marker_separation)};
+    // TODO(vainiovano): Define the order of width and height
     const std::array<const cv::aruco::Board, 4> boards{
         std::move(ground_board), std::move(cube_board), std::move(cube2_board),
         std::move(cube3_board)};
+    std::array<visualizer::ObjectHandle, 4> handles{
+        visualizer.addPlane(plane_width, plane_height),
+        visualizer.addBox(cube_side, cube_side, cube_side),
+        visualizer.addBox(cube_side, cube_side, cube_side),
+        visualizer.addBox(cube_side, cube_side, cube_side)};
+    visualizer::ObjectHandle camera_handle{visualizer.addCamera()};
 
     cv::VideoCapture capture{video_file};
     cv::VideoWriter output{};
@@ -342,12 +364,33 @@ auto main(int argc, char *argv[]) -> int {
         image.copyTo(render_image);
         cv::aruco::drawDetectedMarkers(render_image, fit_result.corners,
                                        fit_result.ids);
+        std::uint32_t board_index{0};
+        std::optional<affine_rotation::AffineRotation> camera_to_world{};
+        const auto &plane_board{fit_result.boards[0]};
+        if (plane_board) {
+            camera_to_world =
+                affine_rotation::from_cv(plane_board->rvec, plane_board->tvec)
+                    .inverse();
+            camera_handle.setTransform(*camera_to_world);
+        }
+        camera_handle.setVisible(camera_to_world.has_value());
         for (const auto &board_pose : fit_result.boards) {
+            handles[board_index].setVisible(camera_to_world.has_value() &&
+                                            board_pose.has_value());
             if (board_pose) {
                 cv::drawFrameAxes(render_image, camera_matrix, {},
-                                  board_pose->rvec, board_pose->tvec, 0.001F);
+                                  board_pose->rvec, board_pose->tvec, 0.1F);
+                if (camera_to_world) {
+                    const auto object_to_camera{affine_rotation::from_cv(
+                        board_pose->rvec, board_pose->tvec)};
+                    const auto object_to_world{*camera_to_world *
+                                               object_to_camera};
+                    handles[board_index].setTransform(object_to_world);
+                }
             }
+            ++board_index;
         }
+        visualizer.refresh();
         if (video_output_file) {
             output.write(render_image);
         } else {
