@@ -1,4 +1,4 @@
-#include "world.h"
+#include <bananas_aruco/world.h>
 
 #include <algorithm>
 #include <array>
@@ -19,7 +19,7 @@
 #include <opencv2/core/types.hpp>
 #include <opencv2/objdetect/aruco_board.hpp>
 
-#include "affine_rotation.h"
+#include <bananas_aruco/affine_rotation.h>
 
 namespace {
 

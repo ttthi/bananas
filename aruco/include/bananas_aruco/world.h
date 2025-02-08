@@ -11,7 +11,7 @@
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/objdetect/aruco_dictionary.hpp>
 
-#include "affine_rotation.h"
+#include <bananas_aruco/affine_rotation.h>
 
 namespace world {
 

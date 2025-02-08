@@ -18,8 +18,8 @@
 #include <opencv2/objdetect/aruco_dictionary.hpp>
 #include <opencv2/videoio.hpp>
 
-#include "visualization/visualizer.h"
-#include "world.h"
+#include <bananas_aruco/visualization/visualizer.h>
+#include <bananas_aruco/world.h>
 
 namespace {
 
