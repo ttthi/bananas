@@ -14,7 +14,7 @@
 #include <OgreSceneNode.h>
 #include <unordered_map>
 
-#include "../world.h"
+#include <bananas_aruco/world.h>
 
 namespace visualizer {
 
