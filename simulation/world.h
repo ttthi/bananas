@@ -15,6 +15,20 @@
 
 namespace world {
 
+struct BoxFaceSettings {
+    int id{};
+    float left_margin{};
+    float top_margin{};
+    float rotation{};
+    float side{1.0F};
+};
+
+struct BoxSettings {
+    cv::Vec3f size{};
+    // TODO(vainiovano): define the order
+    std::array<BoxFaceSettings, 6> faces{};
+};
+
 using DynamicBoardId = std::uint32_t;
 
 struct FitResult {
@@ -33,6 +47,8 @@ class World {
           cv::aruco::Board static_environment);
 
     auto addBoard(cv::aruco::Board board) -> DynamicBoardId;
+    auto addBox(const BoxSettings &settings) -> DynamicBoardId;
+    auto addCube(float size, float margin, int start_id) -> DynamicBoardId;
 
     auto fit(const cv::Mat &image) const -> FitResult;
 
@@ -41,6 +57,8 @@ class World {
                   const std::vector<int> &ids,
                   const cv::aruco::Board &board) const
         -> std::optional<affine_rotation::AffineRotation>;
+
+    auto formBoxBoard(const BoxSettings &settings) -> cv::aruco::Board;
 
     cv::Mat camera_matrix;
     cv::Mat distortion_coeffs;

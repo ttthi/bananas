@@ -1,9 +1,4 @@
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <complex>
 #include <cstdlib>
-#include <functional>
 #include <initializer_list>
 #include <iostream>
 #include <numeric>
@@ -13,10 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include <gsl/span>
-
 #include <opencv2/core/mat.hpp>
-#include <opencv2/core/matx.hpp>
 #include <opencv2/core/persistence.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/core/utility.hpp>
@@ -52,123 +44,12 @@ const cv::Mat camera_matrix({3, 3},
                                 focal_length_x, 0, optical_center_x, 0,
                                 focal_length_y, optical_center_y, 0, 0, 1});
 
-const std::array<const int, 6> cube_id_offsets{3, 4, 2, 1, 0, 5};
-const float quarter_circle{std::atanf(1.0F) * 2.0F};
-const std::array<const float, 6> cube_face_angles{
-    quarter_circle, -quarter_circle, 0, 0, 2 * quarter_circle, 0};
-
 struct GroundPlaneSettings {
     cv::Size size{1, 1};
     float marker_side{1.0F};
     float marker_separation{1.0F};
     int from_id{};
 };
-
-struct BoxFaceSettings {
-    float left_margin{};
-    float top_margin{};
-    float rotation{};
-    float side{1.0F};
-    int id{};
-};
-
-struct BoxSettings {
-    cv::Vec3f size{};
-    // TODO(vainiovano): define the order
-    std::array<BoxFaceSettings, 6> faces{};
-};
-
-auto cube_ids_from(int from) -> std::array<int, 6> {
-    std::array<int, 6> result{};
-    std::transform(cube_id_offsets.cbegin(), cube_id_offsets.cend(),
-                   result.begin(), [from](int id) { return from + id; });
-    return result;
-}
-
-auto make_cube_settings(float size, float margin, gsl::span<const int, 6> ids)
-    -> BoxSettings {
-    BoxSettings box_settings{};
-    box_settings.size = {size, size, size};
-    for (std::size_t i{0}; i < box_settings.faces.size(); ++i) {
-        box_settings.faces[i].left_margin = margin;
-        box_settings.faces[i].top_margin = margin;
-        box_settings.faces[i].side = size - 2 * margin;
-        box_settings.faces[i].id = ids[i];
-    }
-    for (std::size_t i{0}; i < box_settings.faces.size(); ++i) {
-        box_settings.faces[i].left_margin = margin;
-        box_settings.faces[i].top_margin = margin;
-        box_settings.faces[i].side = size - 2 * margin;
-        box_settings.faces[i].rotation = cube_face_angles[i];
-    }
-    return box_settings;
-}
-
-auto form_box_face(const BoxFaceSettings &face_settings)
-    -> std::array<cv::Point2f, 4> {
-    const float half_side{face_settings.side / 2.0F};
-    std::array<cv::Point2f, 4> face{cv::Point2f{-half_side, -half_side},
-                                    {half_side, -half_side},
-                                    {half_side, half_side},
-                                    {-half_side, half_side}};
-
-    std::transform(
-        face.cbegin(), face.cend(), face.begin(),
-        [&face_settings](cv::Point2f point) -> cv::Point2f {
-            const std::complex<float> point_complex{point.x, point.y};
-            const std::complex<float> rotated{
-                std::polar(1.0F, face_settings.rotation) * point_complex};
-            // TODO(vainiovano): margins
-            // const std::complex<float> translated{
-            //     rotated.real() + face_settings.left_margin,
-            //     rotated.imag() + face_settings.top_margin};
-            return {rotated.real(), rotated.imag()};
-        });
-
-    return face;
-}
-
-auto form_box_board(const cv::aruco::Dictionary &dictionary,
-                    const BoxSettings &box_settings) -> cv::aruco::Board {
-    std::vector<std::vector<cv::Point3f>> object_points(
-        6, std::vector<cv::Point3f>(4));
-
-    const auto set_face{
-        [&box_settings, &object_points](
-            int face_index,
-            std::function<cv::Point3f(cv::Point2f)> to_space) -> void {
-            const auto face{form_box_face(box_settings.faces[face_index])};
-            std::transform(face.cbegin(), face.cend(),
-                           object_points[face_index].begin(),
-                           std::move(to_space));
-        }};
-
-    // TODO(vainiovano): Select a coordinate system that makes sense.
-    set_face(0, [&box_settings](cv::Point2f point) -> cv::Point3f {
-        return {point.x, point.y, -box_settings.size[0] / 2.0F};
-    });
-    set_face(1, [&box_settings](cv::Point2f point) -> cv::Point3f {
-        return {-point.x, point.y, box_settings.size[0] / 2.0F};
-    });
-    set_face(2, [&box_settings](cv::Point2f point) -> cv::Point3f {
-        return {-box_settings.size[1] / 2.0F, -point.x, -point.y};
-    });
-    set_face(3, [&box_settings](cv::Point2f point) -> cv::Point3f {
-        return {box_settings.size[1] / 2.0F, -point.x, point.y};
-    });
-    set_face(4, [&box_settings](cv::Point2f point) -> cv::Point3f {
-        return {point.x, -box_settings.size[2] / 2.0F, -point.y};
-    });
-    set_face(5, [&box_settings](cv::Point2f point) -> cv::Point3f {
-        return {point.x, box_settings.size[2] / 2.0F, point.y};
-    });
-
-    std::array<int, 6> ids{};
-    std::transform(box_settings.faces.cbegin(), box_settings.faces.cend(),
-                   ids.begin(),
-                   [](const BoxFaceSettings &face) -> int { return face.id; });
-    return {object_points, dictionary, ids};
-}
 
 void read_dictionary(cv::aruco::Dictionary &dictionary,
                      const std::string &file_name) {
@@ -248,24 +129,16 @@ auto main(int argc, char *argv[]) -> int {
         ground_plane_marker_separation,
         0};
     auto ground_board{form_ground_board(dictionary, ground_settings)};
-    world::World world{camera_matrix, {}, dictionary, std::move(ground_board)};
+    world::World world{
+        camera_matrix, {}, std::move(dictionary), std::move(ground_board)};
 
-    const auto cube_settings{
-        make_cube_settings(cube_side, cube_margin, cube_ids_from(25))};
-    auto cube_board{form_box_board(dictionary, cube_settings)};
-    const auto cube_id{world.addBoard(std::move(cube_board))};
+    const auto cube_id{world.addCube(cube_side, cube_margin, 25)};
     visualizer.addBox(cube_id, cube_side, cube_side, cube_side);
 
-    const auto cube2_settings{
-        make_cube_settings(cube_side, cube_margin, cube_ids_from(31))};
-    auto cube2_board{form_box_board(dictionary, cube2_settings)};
-    const auto cube2_id{world.addBoard(std::move(cube2_board))};
+    const auto cube2_id{world.addCube(cube_side, cube_margin, 31)};
     visualizer.addBox(cube2_id, cube_side, cube_side, cube_side);
 
-    const auto cube3_settings{
-        make_cube_settings(cube_side, cube_margin, cube_ids_from(37))};
-    auto cube3_board{form_box_board(dictionary, cube3_settings)};
-    const auto cube3_id{world.addBoard(std::move(cube3_board))};
+    const auto cube3_id{world.addCube(cube_side, cube_margin, 37)};
     visualizer.addBox(cube3_id, cube_side, cube_side, cube_side);
 
     const float plane_width{
