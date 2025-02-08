@@ -39,7 +39,10 @@ add_executable(positioner
     affine_rotation.cpp
     positioner.cpp
     visualization/visualizer.h
-    visualization/visualizer.cpp)
+    visualization/visualizer.cpp
+    world.h
+    world.cpp
+)
 target_compile_features(positioner PUBLIC cxx_std_17)
 set_target_properties(positioner PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(positioner PRIVATE -Wall -Wextra -Wpedantic)
