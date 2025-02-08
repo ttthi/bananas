@@ -1,4 +1,4 @@
-#include "visualizer.h"
+#include <bananas_aruco/visualization/visualizer.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -17,8 +17,8 @@
 #include <OgreRoot.h>
 #include <OgreShaderGenerator.h>
 
-#include "../affine_rotation.h"
-#include "../world.h"
+#include <bananas_aruco/affine_rotation.h>
+#include <bananas_aruco/world.h>
 
 namespace {
 
