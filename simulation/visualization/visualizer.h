@@ -12,21 +12,11 @@
 #include <OgreRoot.h>
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
+#include <unordered_map>
 
-#include "../affine_rotation.h"
+#include "../world.h"
 
 namespace visualizer {
-
-class ObjectHandle {
-  public:
-    explicit ObjectHandle(Ogre::SceneNode *node);
-
-    void setVisible(bool visible);
-    void setTransform(const affine_rotation::AffineRotation &transform);
-
-  private:
-    Ogre::SceneNode *node;
-};
 
 class KeyHandler : public OgreBites::InputListener {
   public:
@@ -50,12 +40,14 @@ class Visualizer {
   public:
     Visualizer();
 
+    void update(const world::FitResult &fit);
+
     /// Render a new frame.
     void refresh();
 
-    auto addCamera() -> ObjectHandle;
-    auto addBox(float width, float height, float depth) -> ObjectHandle;
-    auto addPlane(float width, float height) -> ObjectHandle;
+    void setStaticEnvironmentSize(float width, float height);
+    void addBox(world::DynamicBoardId id, float width, float height,
+                float depth);
 
   private:
     InitializedContext context{};
@@ -64,6 +56,10 @@ class Visualizer {
     Ogre::SceneNode *camera_node;
     OgreBites::CameraMan camera_manager;
     KeyHandler key_handler;
+    Ogre::SceneNode *static_environment;
+    Ogre::SceneNode *camera_visualization;
+    std::unordered_map<world::DynamicBoardId, Ogre::SceneNode *>
+        dynamic_environment{};
 };
 
 } // namespace visualizer

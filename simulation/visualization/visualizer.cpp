@@ -18,13 +18,12 @@
 #include <OgreShaderGenerator.h>
 
 #include "../affine_rotation.h"
+#include "../world.h"
 
-namespace visualizer {
+namespace {
 
-void ObjectHandle::setVisible(bool visible) { node->setVisible(visible); }
-
-void ObjectHandle::setTransform(
-    const affine_rotation::AffineRotation &transform) {
+void set_transform(Ogre::SceneNode *node,
+                   const affine_rotation::AffineRotation &transform) {
     node->setPosition(Ogre::Vector3f{transform.getTranslation().data()});
 
     const auto rotation{transform.getRotation()};
@@ -32,7 +31,9 @@ void ObjectHandle::setTransform(
                                           rotation.y(), rotation.z()});
 }
 
-ObjectHandle::ObjectHandle(Ogre::SceneNode *node) : node{node} {};
+} // namespace
+
+namespace visualizer {
 
 KeyHandler::KeyHandler(OgreBites::CameraMan *camera_manager)
     : camera_manager{camera_manager} {}
@@ -56,7 +57,11 @@ InitializedContext::InitializedContext() : OgreBites::ApplicationContext{} {
 Visualizer::Visualizer()
     : root{context.getRoot()}, scene_manager{root->createSceneManager()},
       camera_node{scene_manager->getRootSceneNode()->createChildSceneNode()},
-      camera_manager{camera_node}, key_handler(&camera_manager) {
+      camera_manager{camera_node}, key_handler{&camera_manager},
+      static_environment{
+          scene_manager->getRootSceneNode()->createChildSceneNode()},
+      camera_visualization{
+          scene_manager->getRootSceneNode()->createChildSceneNode()} {
     Ogre::RTShader::ShaderGenerator *shadergen{
         Ogre::RTShader::ShaderGenerator::getSingletonPtr()};
     shadergen->addSceneManager(scene_manager);
@@ -83,12 +88,50 @@ Visualizer::Visualizer()
 
     context.addInputListener(&key_handler);
     context.addInputListener(&camera_manager);
+
+    Ogre::Entity *ground_plane{
+        scene_manager->createEntity(Ogre::SceneManager::PT_PLANE)};
+    // Turn the plane around. The boxes have negative Z coordinates in the
+    // coordinate system we are using.
+    Ogre::SceneNode *child_node{static_environment->createChildSceneNode(
+        // TODO(vainiovano): Fix the static environment coordinate system to be
+        // centered instead of trying to center the plane here.
+        Ogre::Vector3{100.0F, 100.0F, 0.0F},
+        Ogre::Quaternion{Ogre::Degree{180}, Ogre::Vector3{1, 0, 0}})};
+    child_node->attachObject(ground_plane);
+    static_environment->setVisible(false);
+
+    Ogre::Entity *camera_visualization_entity{
+        scene_manager->createEntity(Ogre::SceneManager::PT_CUBE)};
+    camera_visualization->setScale(0.00025F, 0.00025F, 0.00125F);
+    camera_visualization->attachObject(camera_visualization_entity);
+    camera_visualization->setVisible(false);
+}
+
+void Visualizer::update(const world::FitResult &fit) {
+    static_environment->setVisible(fit.camera_to_world.has_value());
+    camera_visualization->setVisible(fit.camera_to_world.has_value());
+    if (fit.camera_to_world) {
+        set_transform(camera_visualization, *fit.camera_to_world);
+    }
+    for (const auto &box : dynamic_environment) {
+        const auto box_fit{fit.dynamic_boards_to_world.find(box.first)};
+        const bool has_fit{box_fit != fit.dynamic_boards_to_world.cend()};
+        box.second->setVisible(has_fit);
+        if (has_fit) {
+            set_transform(box.second, box_fit->second);
+        }
+    }
 }
 
 void Visualizer::refresh() { context.getRoot()->renderOneFrame(); }
 
-auto Visualizer::addBox(float width, float height, float depth)
-    -> ObjectHandle {
+void Visualizer::setStaticEnvironmentSize(float width, float height) {
+    static_environment->setScale(0.005F * width, 0.005F * height, 1.0F);
+}
+
+void Visualizer::addBox(world::DynamicBoardId id, float width, float height,
+                        float depth) {
     Ogre::Entity *cube{
         scene_manager->createEntity(Ogre::SceneManager::PT_CUBE)};
     Ogre::SceneNode *node{
@@ -98,31 +141,7 @@ auto Visualizer::addBox(float width, float height, float depth)
     node->attachObject(cube);
     node->setVisible(false);
 
-    return ObjectHandle{node};
-}
-
-auto Visualizer::addPlane(float width, float height) -> ObjectHandle {
-    Ogre::Entity *plane{
-        scene_manager->createEntity(Ogre::SceneManager::PT_PLANE)};
-    Ogre::SceneNode *node{
-        scene_manager->getRootSceneNode()->createChildSceneNode()};
-    // Turn the plane around. The boxes have negative Z coordinates in the
-    // coordinate system we are using.
-    Ogre::SceneNode *child_node{node->createChildSceneNode(
-        // TODO(vainiovano): Fix the plane coordinate system to be centered
-        // instead of trying to center the plane here.
-        Ogre::Vector3{100.0F, 100.0F, 0.0F},
-        Ogre::Quaternion{Ogre::Degree{180}, Ogre::Vector3{1, 0, 0}})};
-
-    node->setScale({0.005F * width, 0.005F * height, 1.0F});
-    child_node->attachObject(plane);
-    node->setVisible(false);
-
-    return ObjectHandle{node};
-}
-
-auto Visualizer::addCamera() -> ObjectHandle {
-    return Visualizer::addBox(0.025F, 0.025F, 0.125F);
+    dynamic_environment.emplace(id, node);
 }
 
 } // namespace visualizer
