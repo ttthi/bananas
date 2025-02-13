@@ -21,7 +21,14 @@ FetchContent_Declare(Eigen
 )
 FetchContent_MakeAvailable(Eigen)
 
-find_package(OpenCV CONFIG REQUIRED core objdetect videoio highgui calib3d)
+FetchContent_Declare(tinygltf
+    GIT_REPOSITORY "https://github.com/syoyo/tinygltf"
+    GIT_TAG "a5e653e46cca64bbc0ecee7ede007347a94c39b0"
+    GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(tinygltf)
+
+find_package(OpenCV CONFIG REQUIRED core objdetect videoio highgui calib3d imgcodecs)
 
 find_package(OGRE REQUIRED COMPONENTS Bites CONFIG)
 
