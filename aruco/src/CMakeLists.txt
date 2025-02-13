@@ -1,7 +1,9 @@
 add_library(aruco_detector
   affine_rotation.cpp
+  box_board.cpp
   world.cpp
   "${PROJECT_SOURCE_DIR}/include/bananas_aruco/affine_rotation.h"
+  "${PROJECT_SOURCE_DIR}/include/bananas_aruco/box_board.h"
   "${PROJECT_SOURCE_DIR}/include/bananas_aruco/world.h"
 )
 
