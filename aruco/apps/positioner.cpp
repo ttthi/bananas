@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
@@ -18,6 +19,7 @@
 #include <opencv2/objdetect/aruco_dictionary.hpp>
 #include <opencv2/videoio.hpp>
 
+#include <bananas_aruco/box_board.h>
 #include <bananas_aruco/visualization/visualizer.h>
 #include <bananas_aruco/world.h>
 
@@ -35,10 +37,33 @@ const char *const keys{"{@infile  |<none> | Input video }"
                        "{cd       |       | Input file with custom dictionary }"
                        "{vo       |       | Video output file }"};
 
-const float focal_length_x{3555.555556F};
-const float focal_length_y{3555.555556F};
-const float optical_center_x{1280.0F};
-const float optical_center_y{720.0F};
+// TODO(vainiovano): Take the camera matrix as input
+// Phone camera:
+// const float focal_length_x{3208.864324F};
+// const float focal_length_y{3207.79768F};
+// const float optical_center_x{2028.096239F};
+// const float optical_center_y{1506.648877F};
+
+// OAK-D Pro center camera, from the camera's default configuration:
+const float focal_length_x{3080.274658203125F};
+const float focal_length_y{3079.234130859375F};
+const float optical_center_x{1907.0689697265625F};
+const float optical_center_y{1073.337158203125F};
+const cv::Mat distortion_coeffs{14.909083366394043,
+                                -91.85440826416016,
+                                3.919406299246475e-05,
+                                0.0004296370898373425,
+                                352.7801513671875,
+                                14.676776885986328,
+                                -90.88777923583984,
+                                347.32025146484375,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                -0.0033481859136372805,
+                                0.0007485055830329657};
+
 const cv::Mat camera_matrix({3, 3},
                             std::initializer_list<float>{
                                 focal_length_x, 0, optical_center_x, 0,
@@ -77,7 +102,7 @@ auto handle_keys() -> bool {
     bool paused{false};
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-do-while)
     do {
-        const int key{cv::waitKey(paused ? 0 : 60)};
+        const int key{cv::waitKey(paused ? 0 : 40)};
         // \033 ESC
         if (key == '\033' || key == 'q') {
             return true;
@@ -100,8 +125,8 @@ auto main(int argc, char *argv[]) -> int {
     const auto ground_plane_height{parser.get<int>("h")};
     const auto ground_plane_marker_side{parser.get<float>("l")};
     const auto ground_plane_marker_separation{parser.get<float>("s")};
-    const auto cube_side{parser.get<float>("c")};
-    const auto cube_margin{parser.get<float>("m")};
+    // const auto cube_side{parser.get<float>("c")};
+    // const auto cube_margin{parser.get<float>("m")};
     const auto dictionary_file{parser.get<std::string>("cd")};
     const auto video_file{parser.get<std::string>(0)};
     std::optional<std::string> video_output_file{};
@@ -129,17 +154,22 @@ auto main(int argc, char *argv[]) -> int {
         ground_plane_marker_separation,
         0};
     auto ground_board{form_ground_board(dictionary, ground_settings)};
-    world::World world{
-        camera_matrix, {}, std::move(dictionary), std::move(ground_board)};
+    world::World world{camera_matrix, distortion_coeffs, std::move(dictionary),
+                       std::move(ground_board)};
 
-    const auto cube_id{world.addCube(cube_side, cube_margin, 25)};
-    visualizer.addBox(cube_id, cube_side, cube_side, cube_side);
+    const auto box_id{world.addBox(box_board::example_box)};
+    visualizer.addBox(box_id, box_board::example_box.size[0],
+                      box_board::example_box.size[1],
+                      box_board::example_box.size[2]);
 
-    const auto cube2_id{world.addCube(cube_side, cube_margin, 31)};
-    visualizer.addBox(cube2_id, cube_side, cube_side, cube_side);
+    // const auto cube_id{world.addCube(cube_side, cube_margin, 25)};
+    // visualizer.addBox(cube_id, cube_side, cube_side, cube_side);
 
-    const auto cube3_id{world.addCube(cube_side, cube_margin, 37)};
-    visualizer.addBox(cube3_id, cube_side, cube_side, cube_side);
+    // const auto cube2_id{world.addCube(cube_side, cube_margin, 31)};
+    // visualizer.addBox(cube2_id, cube_side, cube_side, cube_side);
+
+    // const auto cube3_id{world.addCube(cube_side, cube_margin, 37)};
+    // visualizer.addBox(cube3_id, cube_side, cube_side, cube_side);
 
     const float plane_width{
         static_cast<float>(ground_plane_width) *
