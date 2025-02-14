@@ -18,6 +18,7 @@
 #include <OgreShaderGenerator.h>
 
 #include <bananas_aruco/affine_rotation.h>
+#include <bananas_aruco/box_board.h>
 #include <bananas_aruco/world.h>
 
 namespace {
@@ -130,14 +131,15 @@ void Visualizer::setStaticEnvironmentSize(float width, float height) {
     static_environment->setScale(0.005F * width, 0.005F * height, 1.0F);
 }
 
-void Visualizer::addBox(world::DynamicBoardId id, float width, float height,
-                        float depth) {
+void Visualizer::addBox(world::DynamicBoardId id,
+                        const box_board::BoxSize &size) {
     Ogre::Entity *cube{
         scene_manager->createEntity(Ogre::SceneManager::PT_CUBE)};
     Ogre::SceneNode *node{
         scene_manager->getRootSceneNode()->createChildSceneNode()};
 
-    node->setScale({0.01F * width, 0.01F * height, 0.01F * depth});
+    node->setScale(
+        {0.01F * size.width, 0.01F * size.height, 0.01F * size.depth});
     node->attachObject(cube);
     node->setVisible(false);
 
