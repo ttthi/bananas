@@ -229,33 +229,33 @@ constexpr std::array<float,
         // Forward
         -0.5F, -0.5F, +0.5F, //
         +0.5F, -0.5F, +0.5F, //
-        -0.5F, +0.5F, +0.5F, //
         +0.5F, +0.5F, +0.5F, //
+        -0.5F, +0.5F, +0.5F, //
         // Backward
         +0.5F, -0.5F, -0.5F, //
         -0.5F, -0.5F, -0.5F, //
-        +0.5F, +0.5F, -0.5F, //
         -0.5F, +0.5F, -0.5F, //
+        +0.5F, +0.5F, -0.5F, //
         // Left
         +0.5F, -0.5F, +0.5F, //
         +0.5F, -0.5F, -0.5F, //
-        +0.5F, +0.5F, +0.5F, //
         +0.5F, +0.5F, -0.5F, //
+        +0.5F, +0.5F, +0.5F, //
         // Right
         -0.5F, -0.5F, -0.5F, //
         -0.5F, -0.5F, +0.5F, //
-        -0.5F, +0.5F, -0.5F, //
         -0.5F, +0.5F, +0.5F, //
+        -0.5F, +0.5F, -0.5F, //
         // Up
         -0.5F, +0.5F, +0.5F, //
         +0.5F, +0.5F, +0.5F, //
-        -0.5F, +0.5F, -0.5F, //
         +0.5F, +0.5F, -0.5F, //
+        -0.5F, +0.5F, -0.5F, //
         // Down
         -0.5F, -0.5F, -0.5F, //
         +0.5F, -0.5F, -0.5F, //
-        -0.5F, -0.5F, +0.5F, //
         +0.5F, -0.5F, +0.5F, //
+        -0.5F, -0.5F, +0.5F, //
     };
 
 /// Produce a glTF asset for the given box, including the markers.
@@ -325,7 +325,7 @@ auto produce_box_model(const cv::aruco::Dictionary &dictionary,
 
         auto &primitive{box_mesh.primitives.emplace_back()};
         primitive.attributes.emplace("POSITION", model.accessors.size() - 1);
-        primitive.mode = TINYGLTF_MODE_TRIANGLE_STRIP;
+        primitive.mode = TINYGLTF_MODE_TRIANGLE_FAN;
         primitive.material = static_cast<int>(model.materials.size()) - 1;
     }
 
