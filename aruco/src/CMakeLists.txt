@@ -14,7 +14,8 @@ target_compile_features(aruco_detector PUBLIC cxx_std_17)
 set_target_properties(aruco_detector PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(aruco_detector PRIVATE -Wall -Wextra -Wpedantic)
 
-target_link_libraries(aruco_detector PUBLIC Eigen3::Eigen ${OpenCV_LIBS})
+target_link_libraries(aruco_detector PUBLIC Eigen3::Eigen ${OpenCV_LIBS}
+                                            nlohmann_json::nlohmann_json)
 target_link_libraries(aruco_detector PRIVATE Microsoft.GSL::GSL)
 
 add_subdirectory(visualization)

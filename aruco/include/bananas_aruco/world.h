@@ -36,7 +36,6 @@ class World {
 
     auto addBoard(cv::aruco::Board board) -> DynamicBoardId;
     auto addBox(const box_board::BoxSettings &settings) -> DynamicBoardId;
-    auto addCube(float size, float margin, int start_id) -> DynamicBoardId;
 
     auto fit(const cv::Mat &image) const -> FitResult;
 

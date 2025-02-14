@@ -15,5 +15,6 @@ add_executable(gltf_exporter gltf_exporter.cpp)
 target_compile_features(gltf_exporter PUBLIC cxx_std_17)
 set_target_properties(gltf_exporter PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(gltf_exporter PRIVATE -Wall -Wextra -Wpedantic)
-target_link_libraries(gltf_exporter PRIVATE ${OpenCV_LIBS} aruco_detector
-                                            tinygltf Microsoft.GSL::GSL)
+target_link_libraries(
+  gltf_exporter PRIVATE ${OpenCV_LIBS} aruco_detector tinygltf
+                        Microsoft.GSL::GSL nlohmann_json::nlohmann_json)
