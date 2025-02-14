@@ -158,9 +158,7 @@ auto main(int argc, char *argv[]) -> int {
                        std::move(ground_board)};
 
     const auto box_id{world.addBox(box_board::example_box)};
-    visualizer.addBox(box_id, box_board::example_box.size[0],
-                      box_board::example_box.size[1],
-                      box_board::example_box.size[2]);
+    visualizer.addBox(box_id, box_board::example_box.size);
 
     // const auto cube_id{world.addCube(cube_side, cube_margin, 25)};
     // visualizer.addBox(cube_id, cube_side, cube_side, cube_side);

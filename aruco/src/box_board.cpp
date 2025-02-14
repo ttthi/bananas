@@ -8,13 +8,14 @@
 #include <utility>
 #include <vector>
 
-#include <opencv2/core/matx.hpp>
+#include <nlohmann/json.hpp>
+
 #include <opencv2/core/types.hpp>
 #include <opencv2/objdetect/aruco_board.hpp>
 
 namespace {
 
-auto form_box_face(const box_board::BoxFaceSettings &face_settings)
+auto form_box_face(const box_board::MarkerSettings &face_settings)
     -> std::array<cv::Point2f, 4> {
     const float half_side{face_settings.side / 2.0F};
     std::array<cv::Point2f, 4> face{cv::Point2f{-half_side, -half_side},
@@ -26,11 +27,16 @@ auto form_box_face(const box_board::BoxFaceSettings &face_settings)
         face.cbegin(), face.cend(), face.begin(),
         [&face_settings](cv::Point2f point) -> cv::Point2f {
             const std::complex<float> point_complex{point.x, point.y};
+            // Apply the rotation backwards: we want it to go counterclockwise,
+            // but since OpenCV markers are "upside down", the rotation needs to
+            // be the other way around here.
             const std::complex<float> rotated{
-                std::polar(1.0F, face_settings.rotation) * point_complex};
+                std::polar(1.0F, -face_settings.rotation) * point_complex};
+            // Apply the Y offset backwards: we want it to go "upwards", not
+            // "downwards".
             const std::complex<float> translated{
-                rotated.real() + face_settings.x,
-                rotated.imag() + face_settings.y};
+                rotated.real() + face_settings.x_offset,
+                rotated.imag() - face_settings.y_offset};
             return {translated.real(), translated.imag()};
         });
 
@@ -43,6 +49,24 @@ const float quarter_circle{std::atanf(1.0F) * 2.0F};
 
 namespace box_board {
 
+void from_json(const nlohmann::json &j, BoxSettings &box_settings) {
+    j.at("size").get_to(box_settings.size);
+
+    const auto &markers{j.at("markers")};
+    auto forward_markers{
+        markers.value<std::vector<MarkerSettings>>("forward", {})};
+    auto backward_markers{
+        markers.value<std::vector<MarkerSettings>>("backward", {})};
+    auto left_markers{markers.value<std::vector<MarkerSettings>>("left", {})};
+    auto right_markers{markers.value<std::vector<MarkerSettings>>("right", {})};
+    auto up_markers{markers.value<std::vector<MarkerSettings>>("up", {})};
+    auto down_markers{markers.value<std::vector<MarkerSettings>>("down", {})};
+    box_settings.markers = {
+        std::move(forward_markers), std::move(backward_markers),
+        std::move(left_markers),    std::move(right_markers),
+        std::move(up_markers),      std::move(down_markers)};
+}
+
 auto make_board(const cv::aruco::Dictionary &dictionary,
                 const box_board::BoxSettings &settings) -> cv::aruco::Board {
     std::vector<std::vector<cv::Point3f>> object_points{};
@@ -54,7 +78,7 @@ auto make_board(const cv::aruco::Dictionary &dictionary,
         [&settings, &object_points, &ids](
             int face_index,
             const std::function<cv::Point3f(cv::Point2f)> &to_space) -> void {
-        for (const auto &face_aruco : settings.faces[face_index]) {
+        for (const auto &face_aruco : settings.markers[face_index]) {
             const auto face{form_box_face(face_aruco)};
             std::vector<cv::Point3f> face_3d(4);
             std::transform(face.cbegin(), face.cend(), face_3d.begin(),
@@ -65,43 +89,45 @@ auto make_board(const cv::aruco::Dictionary &dictionary,
         }
     };
 
-    // TODO(vainiovano): Select a coordinate system that makes sense.
-    set_face(0, [&settings](cv::Point2f point) -> cv::Point3f {
-        return {point.x, point.y, -settings.size[2] / 2.0F};
-    });
-    set_face(1, [&settings](cv::Point2f point) -> cv::Point3f {
-        return {-point.x, point.y, settings.size[2] / 2.0F};
-    });
-    set_face(2, [&settings](cv::Point2f point) -> cv::Point3f {
-        return {-settings.size[0] / 2.0F, -point.x, -point.y};
-    });
-    set_face(3, [&settings](cv::Point2f point) -> cv::Point3f {
-        return {settings.size[0] / 2.0F, -point.x, point.y};
-    });
-    set_face(4, [&settings](cv::Point2f point) -> cv::Point3f {
-        return {point.x, -settings.size[1] / 2.0F, -point.y};
-    });
-    set_face(5, [&settings](cv::Point2f point) -> cv::Point3f {
-        return {point.x, settings.size[1] / 2.0F, point.y};
-    });
+    set_face(BoxSettings::forward_face_index,
+             [&settings](cv::Point2f point) -> cv::Point3f {
+                 return {point.x, -point.y, settings.size.depth / 2.0F};
+             });
+    set_face(BoxSettings::backward_face_index,
+             [&settings](cv::Point2f point) -> cv::Point3f {
+                 return {-point.x, -point.y, -settings.size.depth / 2.0F};
+             });
+    set_face(BoxSettings::left_face_index,
+             [&settings](cv::Point2f point) -> cv::Point3f {
+                 return {settings.size.width / 2.0F, -point.y, -point.x};
+             });
+    set_face(BoxSettings::right_face_index,
+             [&settings](cv::Point2f point) -> cv::Point3f {
+                 return {-settings.size.width / 2.0F, -point.y, point.x};
+             });
+    set_face(BoxSettings::up_face_index,
+             [&settings](cv::Point2f point) -> cv::Point3f {
+                 return {point.y, settings.size.height / 2.0F, -point.x};
+             });
+    set_face(BoxSettings::down_face_index,
+             [&settings](cv::Point2f point) -> cv::Point3f {
+                 return {point.y, -settings.size.height / 2.0F, point.x};
+             });
 
     return {object_points, dictionary, ids};
 }
 
 const box_board::BoxSettings example_box{
-    {0.18F, 0.134F, 0.125F},
-    {std::vector<box_board::BoxFaceSettings>{
-         // X left, Y up, Z outwards
-         {27, 0.028F, -0.0035F, quarter_circle, 0.038F},
-         {30, -0.0315F, -0.0035F, quarter_circle, 0.038F}},
+    {0.125F, 0.134F, 0.18F},
+    {std::vector<box_board::MarkerSettings>{
+         {43, -0.0195F, 0.0515F, 0.0F, 0.024F},
+         {44, 0.018F, 0.0515F, 0.0F, 0.024F},
+         {48, -0.0195F, 0.0125F, 0.0F, 0.024F},
+         {49, 0.018F, 0.0125F, 0.0F, 0.024F}},
      {},
+     {{27, -0.028F, -0.0035F, quarter_circle, 0.038F},
+      {30, 0.0315F, -0.0035F, quarter_circle, 0.038F}},
      {},
-     {
-         {43, -0.0515F, 0.0195F, -quarter_circle, 0.024F},
-         {44, -0.0515F, -0.018F, -quarter_circle, 0.024F},
-         {48, -0.0125F, 0.0195F, -quarter_circle, 0.024F},
-         {49, -0.0125F, -0.018F, -quarter_circle, 0.024F},
-     },
      {},
      {}}};
 

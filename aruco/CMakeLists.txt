@@ -23,6 +23,15 @@ FetchContent_Declare(
   GIT_SHALLOW ON)
 FetchContent_MakeAvailable(tinygltf)
 
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY "https://github.com/google/googletest"
+  GIT_TAG "c00fd25b71a17e645e4567fcb465c3fa532827d2"
+  GIT_SHALLOW ON)
+FetchContent_MakeAvailable(googletest)
+
+find_package(nlohmann_json 3.11.3 REQUIRED CONFIG)
+
 find_package(Eigen3 3.4 REQUIRED CONFIG)
 
 find_package(
@@ -40,3 +49,12 @@ find_package(OGRE REQUIRED COMPONENTS Bites CONFIG)
 
 add_subdirectory(src)
 add_subdirectory(apps)
+
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+  include(CTest)
+endif()
+
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+  include(GoogleTest)
+  add_subdirectory(tests)
+endif()

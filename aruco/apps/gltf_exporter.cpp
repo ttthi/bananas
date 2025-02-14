@@ -21,9 +21,12 @@
 #include <opencv2/objdetect/aruco_board.hpp>
 #include <opencv2/objdetect/aruco_dictionary.hpp>
 
+#include <nlohmann/json.hpp>
+
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
 #define TINYGLTF_NO_STB_IMAGE_WRITE
+#define TINYGLTF_NO_INCLUDE_JSON
 #include <tiny_gltf.h>
 
 #include <bananas_aruco/box_board.h>
@@ -32,7 +35,9 @@ namespace {
 
 const char *const about{
     "Generate a binary glTF file from a box ArUco marker placement"};
-const char *const keys{"{@outpath | <none> | Output GLB file path }"};
+const char *const keys{
+    "{@inpath  | <none> | JSON file containing box description }"
+    "{@outpath | <none> | Output GLB file path }"};
 
 constexpr std::size_t corners_per_marker{4};
 constexpr std::size_t floats_per_position{3};
@@ -283,7 +288,9 @@ auto produce_box_model(const cv::aruco::Dictionary &dictionary,
     // Make the box a bit smaller to avoid Z-fighting with the markers. The
     // markers are the real important part, the box is just visual extra.
     constexpr float size_factor{0.995F};
-    const cv::Vec3f scaled_size{box.size * size_factor};
+    const cv::Vec3f scaled_size{
+        cv::Vec3f{box.size.width, box.size.height, box.size.depth} *
+        size_factor};
 
     std::array<float, box_faces * box_corners_per_face * floats_per_position>
         vertices(cube_vertices);
@@ -345,7 +352,8 @@ auto main(int argc, char *argv[]) -> int {
     cv::CommandLineParser parser{argc, argv, keys};
     parser.about(about);
 
-    const auto out_path{parser.get<std::string>(0)};
+    const auto in_path{parser.get<std::string>(0)};
+    const auto out_path{parser.get<std::string>(1)};
     if (!parser.check()) {
         parser.printErrors();
         parser.printMessage();
@@ -354,7 +362,27 @@ auto main(int argc, char *argv[]) -> int {
 
     const cv::aruco::Dictionary dictionary{cv::aruco::getPredefinedDictionary(
         cv::aruco::PredefinedDictionaryType::DICT_5X5_100)};
-    const auto model{produce_box_model(dictionary, box_board::example_box)};
+
+    box_board::BoxSettings box_settings;
+    {
+        std::ifstream in_stream{in_path};
+        if (!in_stream) {
+            std::cerr << "Failed to open input file\n";
+            return EXIT_FAILURE;
+        }
+
+        try {
+            box_board::from_json(nlohmann::json::parse(in_stream),
+                                 box_settings);
+        } catch (const nlohmann::json::exception &e) {
+            std::cerr << "Failed to parse box description file: " << e.what()
+                      << '\n';
+            return EXIT_FAILURE;
+        }
+    }
+
+    box_settings = box_board::example_box;
+    const auto model{produce_box_model(dictionary, box_settings)};
 
     std::ofstream out_stream{out_path,
                              std::ios_base::out | std::ios_base::binary};
@@ -366,7 +394,7 @@ auto main(int argc, char *argv[]) -> int {
     try {
         tinygltf::TinyGLTF gltf{};
         gltf.WriteGltfSceneToStream(&model, out_stream, false, true);
-    } catch (const tinygltf::detail::json::exception &e) {
+    } catch (const nlohmann::json::exception &e) {
         std::cerr << "Failed to write JSON output: " << e.what() << '\n';
         return EXIT_FAILURE;
     }

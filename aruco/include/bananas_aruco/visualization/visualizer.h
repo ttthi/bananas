@@ -13,6 +13,7 @@
 #include <OgreSceneNode.h>
 #include <unordered_map>
 
+#include <bananas_aruco/box_board.h>
 #include <bananas_aruco/world.h>
 
 namespace visualizer {
@@ -45,8 +46,7 @@ class Visualizer {
     void refresh();
 
     void setStaticEnvironmentSize(float width, float height);
-    void addBox(world::DynamicBoardId id, float width, float height,
-                float depth);
+    void addBox(world::DynamicBoardId id, const box_board::BoxSize &size);
 
   private:
     InitializedContext context{};
