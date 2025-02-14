@@ -14,19 +14,14 @@ FetchContent_Declare(GSL
 )
 FetchContent_MakeAvailable(GSL)
 
-FetchContent_Declare(Eigen
-    GIT_REPOSITORY "https://gitlab.com/libeigen/eigen.git"
-    GIT_TAG "3.4.0"
-    GIT_SHALLOW ON
-)
-FetchContent_MakeAvailable(Eigen)
-
 FetchContent_Declare(tinygltf
     GIT_REPOSITORY "https://github.com/syoyo/tinygltf"
     GIT_TAG "a5e653e46cca64bbc0ecee7ede007347a94c39b0"
     GIT_SHALLOW ON
 )
 FetchContent_MakeAvailable(tinygltf)
+
+find_package (Eigen3 3.4 REQUIRED CONFIG)
 
 find_package(OpenCV CONFIG REQUIRED core objdetect videoio highgui calib3d imgcodecs)
 
