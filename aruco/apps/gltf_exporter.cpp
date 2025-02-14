@@ -280,7 +280,9 @@ auto produce_box_model(const cv::aruco::Dictionary &dictionary,
     positions_view.buffer = 0;
     buffer.data.resize(start_offset + cube_bytes);
 
-    constexpr float size_factor{0.999F};
+    // Make the box a bit smaller to avoid Z-fighting with the markers. The
+    // markers are the real important part, the box is just visual extra.
+    constexpr float size_factor{0.995F};
     const cv::Vec3f scaled_size{box.size * size_factor};
 
     std::array<float, box_faces * box_corners_per_face * floats_per_position>
