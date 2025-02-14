@@ -49,7 +49,7 @@ auto make_board(const cv::aruco::Dictionary &dictionary,
     std::vector<int> ids{};
 
     // NOTE: For some reason, clang-tidy starts seeing null pointer issues if
-    // this is written with direct {} initialization
+    // this is written with direct {} initialization.
     const auto set_face =
         [&settings, &object_points, &ids](
             int face_index,
