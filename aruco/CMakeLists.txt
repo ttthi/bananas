@@ -38,8 +38,5 @@ find_package(
 
 find_package(OGRE REQUIRED COMPONENTS Bites CONFIG)
 
-# In case someone out there is still using a system with libm
-find_library(MATH_LIBRARY m)
-
 add_subdirectory(src)
 add_subdirectory(apps)

@@ -16,8 +16,5 @@ target_compile_options(aruco_detector PRIVATE -Wall -Wextra -Wpedantic)
 
 target_link_libraries(aruco_detector PUBLIC Eigen3::Eigen ${OpenCV_LIBS})
 target_link_libraries(aruco_detector PRIVATE Microsoft.GSL::GSL)
-if(MATH_LIBRARY)
-  target_link_libraries(aruco_detector PRIVATE ${MATH_LIBRARY})
-endif()
 
 add_subdirectory(visualization)
