@@ -4,9 +4,10 @@
 #include <cstdint>
 #include <optional>
 #include <unordered_map>
+#include <vector>
 
 #include <opencv2/core/mat.hpp>
-#include <opencv2/core/matx.hpp>
+#include <opencv2/core/types.hpp>
 #include <opencv2/objdetect/aruco_board.hpp>
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/objdetect/aruco_dictionary.hpp>
