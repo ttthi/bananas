@@ -8,7 +8,6 @@
 #include <OgreCameraMan.h>
 #include <OgreInput.h>
 #include <OgrePrerequisites.h>
-#include <OgreQuaternion.h>
 #include <OgreRoot.h>
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
