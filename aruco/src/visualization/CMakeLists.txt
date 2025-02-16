@@ -1,9 +1,10 @@
-add_library(aruco_visualizer
+add_library(
+  aruco_visualizer
   visualizer.cpp
-  "${PROJECT_SOURCE_DIR}/include/bananas_aruco/visualization/visualizer.h"
-)
+  "${PROJECT_SOURCE_DIR}/include/bananas_aruco/visualization/visualizer.h")
 
-target_include_directories(aruco_visualizer PUBLIC "${PROJECT_SOURCE_DIR}/include")
+target_include_directories(aruco_visualizer
+                           PUBLIC "${PROJECT_SOURCE_DIR}/include")
 
 target_compile_features(aruco_visualizer PUBLIC cxx_std_17)
 set_target_properties(aruco_visualizer PROPERTIES CXX_EXTENSIONS OFF)
