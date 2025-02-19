@@ -7,6 +7,7 @@
 
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/core/matx.hpp>
+#include <opencv2/core/types.hpp>
 
 namespace affine_rotation {
 
@@ -25,6 +26,12 @@ auto AffineRotation::operator*(const AffineRotation &other) const
 void AffineRotation::operator*=(const AffineRotation &other) {
     translation += rotation * other.translation;
     rotation *= other.rotation;
+}
+
+auto AffineRotation::operator*(cv::Point3f point) const -> cv::Point3f {
+    const Eigen::Vector3f point_vec{point.x, point.y, point.z};
+    const auto result{translation + rotation * point_vec};
+    return {result.x(), result.y(), result.z()};
 }
 
 auto AffineRotation::inverse() const -> AffineRotation {

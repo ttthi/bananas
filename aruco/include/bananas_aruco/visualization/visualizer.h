@@ -46,7 +46,7 @@ class Visualizer {
     void refresh();
 
     void setStaticEnvironmentSize(float width, float height);
-    void addBox(world::DynamicBoardId id, const box_board::BoxSize &size);
+    void addBox(world::DynamicBoardId id, const board::BoxSize &size);
 
   private:
     InitializedContext context{};

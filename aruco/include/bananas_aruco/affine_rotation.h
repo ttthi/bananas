@@ -5,6 +5,7 @@
 #include <Eigen/Geometry>
 
 #include <opencv2/core/matx.hpp>
+#include <opencv2/core/types.hpp>
 
 namespace affine_rotation {
 
@@ -19,6 +20,8 @@ class AffineRotation {
 
     auto operator*(const AffineRotation &other) const -> AffineRotation;
     void operator*=(const AffineRotation &other);
+
+    auto operator*(cv::Point3f point) const -> cv::Point3f;
 
     [[nodiscard]] auto inverse() const -> AffineRotation;
 

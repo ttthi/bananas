@@ -6,12 +6,12 @@
 
 #include <nlohmann/json.hpp>
 
-#include <opencv2/objdetect/aruco_board.hpp>
+#include <bananas_aruco/board.h>
 
-namespace box_board {
+namespace board {
 
 /// Settings defining the location of a single marker relative to a box face.
-struct MarkerSettings {
+struct BoxMarkerSettings {
     int id{};
     /// The X offset of the marker from the center point of the face. Positive
     /// direction is right relative to the default orientation of the marker.
@@ -25,7 +25,7 @@ struct MarkerSettings {
     /// The side length of the marker.
     float side{1.0F};
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MarkerSettings, id, x_offset, y_offset,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(BoxMarkerSettings, id, x_offset, y_offset,
                                    rotation, side);
 
 /// The size of a box.
@@ -50,7 +50,7 @@ struct BoxSettings {
     /// For the forward, backward, left and right faces, the default orientation
     /// of the markers points up. For the up and down faces, the default
     /// orientation points right.
-    std::array<std::vector<MarkerSettings>, 6> markers{};
+    std::array<std::vector<BoxMarkerSettings>, 6> markers{};
 
     static constexpr int forward_face_index{0};
     static constexpr int backward_face_index{1};
@@ -63,11 +63,10 @@ void from_json(const nlohmann::json &j, BoxSettings &box_settings);
 
 /// Produce an ArUco board for the given box. The markers are placed using the
 /// glTF coordinate system: +X is left, +Y is up and +Z is forward.
-auto make_board(const cv::aruco::Dictionary &dictionary,
-                const BoxSettings &settings) -> cv::aruco::Board;
+auto make_board(const BoxSettings &settings) -> Board;
 
 extern const BoxSettings example_box;
 
-} // namespace box_board
+} // namespace board
 
 #endif // BOX_BOARD_H_
