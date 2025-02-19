@@ -65,8 +65,6 @@ void from_json(const nlohmann::json &j, BoxSettings &box_settings);
 /// glTF coordinate system: +X is left, +Y is up and +Z is forward.
 auto make_board(const BoxSettings &settings) -> Board;
 
-extern const BoxSettings example_box;
-
 } // namespace board
 
 #endif // BOX_BOARD_H_

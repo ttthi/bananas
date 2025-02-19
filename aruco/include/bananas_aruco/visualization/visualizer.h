@@ -4,6 +4,8 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <gsl/span>
+
 #include <OgreApplicationContext.h>
 #include <OgreCameraMan.h>
 #include <OgreInput.h>
@@ -45,7 +47,8 @@ class Visualizer {
     /// Render a new frame.
     void refresh();
 
-    void setStaticEnvironmentSize(float width, float height);
+    void updateStaticEnvironment(
+        gsl::span<const world::StaticEnvironment::PlacedObject> objects);
     void addBox(world::DynamicBoardId id, const board::BoxSize &size);
 
   private:

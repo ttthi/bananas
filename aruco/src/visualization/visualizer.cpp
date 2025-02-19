@@ -1,7 +1,12 @@
 #include <bananas_aruco/visualization/visualizer.h>
 
+#include <variant>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+
+#include <gsl/pointers>
+#include <gsl/span>
 
 #include <OgreApplicationContext.h>
 #include <OgreCamera.h>
@@ -15,10 +20,12 @@
 #include <OgreQuaternion.h>
 #include <OgreRenderWindow.h>
 #include <OgreRoot.h>
+#include <OgreSceneManager.h>
 #include <OgreShaderGenerator.h>
 
 #include <bananas_aruco/affine_rotation.h>
 #include <bananas_aruco/box_board.h>
+#include <bananas_aruco/grid_board.h>
 #include <bananas_aruco/world.h>
 
 namespace {
@@ -31,6 +38,53 @@ void set_transform(Ogre::SceneNode *node,
     node->setOrientation(Ogre::Quaternion{rotation.w(), rotation.x(),
                                           rotation.y(), rotation.z()});
 }
+
+/// An std::variant visitor for creating a node for an object.
+class CreateObjectNodeVisitor {
+  public:
+    CreateObjectNodeVisitor(gsl::not_null<Ogre::SceneManager *> scene_manager,
+                            gsl::not_null<Ogre::SceneNode *> parent)
+        : scene_manager{scene_manager}, parent_node{parent} {}
+
+    auto operator()(const board::BoxSettings &box_settings) const
+        -> gsl::not_null<Ogre::SceneNode *> {
+        const gsl::not_null<Ogre::Entity *> cube{
+            scene_manager->createEntity(Ogre::SceneManager::PT_CUBE)};
+        const gsl::not_null<Ogre::SceneNode *> node{
+            parent_node->createChildSceneNode()};
+
+        node->setScale({0.01F * box_settings.size.width,
+                        0.01F * box_settings.size.height,
+                        0.01F * box_settings.size.depth});
+        node->attachObject(cube);
+
+        return node;
+    }
+
+    auto operator()(const board::GridSettings &grid_settings) const
+        -> gsl::not_null<Ogre::SceneNode *> {
+        const gsl::not_null<Ogre::Entity *> plane{
+            scene_manager->createEntity(Ogre::SceneManager::PT_PLANE)};
+        const gsl::not_null<Ogre::SceneNode *> node{
+            parent_node->createChildSceneNode()};
+
+        // Make the plane point up (+Y direction) by default.
+        const gsl::not_null<Ogre::SceneNode *> child_node{
+            node->createChildSceneNode(
+                Ogre::Vector3{0.0F, 0.0F, 0.0F},
+                Ogre::Quaternion{Ogre::Degree{270}, Ogre::Vector3{1, 0, 0}})};
+        child_node->attachObject(plane);
+
+        node->setScale(0.005F * board::grid_width(grid_settings),
+                       0.005F * board::grid_height(grid_settings), 1.0F);
+
+        return node;
+    }
+
+  private:
+    gsl::not_null<Ogre::SceneManager *> scene_manager;
+    gsl::not_null<Ogre::SceneNode *> parent_node;
+};
 
 } // namespace
 
@@ -123,8 +177,14 @@ void Visualizer::update(const world::FitResult &fit) {
 
 void Visualizer::refresh() { context.getRoot()->renderOneFrame(); }
 
-void Visualizer::setStaticEnvironmentSize(float width, float height) {
-    static_environment->setScale(0.005F * width, 0.005F * height, 1.0F);
+void Visualizer::updateStaticEnvironment(
+    gsl::span<const world::StaticEnvironment::PlacedObject> objects) {
+    static_environment->removeAndDestroyAllChildren();
+    const CreateObjectNodeVisitor visitor{scene_manager, static_environment};
+    for (const auto &object : objects) {
+        const auto node{std::visit(visitor, object.object)};
+        set_transform(node, object.object_to_world);
+    }
 }
 
 void Visualizer::addBox(world::DynamicBoardId id, const board::BoxSize &size) {
