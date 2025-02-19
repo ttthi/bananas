@@ -155,7 +155,7 @@ TEST(BoxBoardTest, RotationsAndOffsetsWork) {
     EXPECT_THAT(object_points[3], testing::Pointwise(PointsEq(), expected_up));
 }
 
-// Tests that boards are correctly decoded from JSON
+// Tests that boards are correctly decoded from JSON.
 TEST(BoxBoardTest, JSONDecodingWorks) {
     const box_board::BoxSettings settings{[]() {
         const auto json(R"(
