@@ -150,7 +150,6 @@ Visualizer::Visualizer()
         Ogre::Vector3{0.0F, 0.0F, 0.0F},
         Ogre::Quaternion{Ogre::Degree{270}, Ogre::Vector3{1, 0, 0}})};
     child_node->attachObject(ground_plane);
-    static_environment->setVisible(false);
 
     Ogre::Entity *camera_visualization_entity{
         scene_manager->createEntity(Ogre::SceneManager::PT_CUBE)};
@@ -160,7 +159,6 @@ Visualizer::Visualizer()
 }
 
 void Visualizer::update(const world::FitResult &fit) {
-    static_environment->setVisible(fit.camera_to_world.has_value());
     camera_visualization->setVisible(fit.camera_to_world.has_value());
     if (fit.camera_to_world) {
         set_transform(camera_visualization, *fit.camera_to_world);
