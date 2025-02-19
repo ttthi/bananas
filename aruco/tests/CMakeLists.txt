@@ -9,3 +9,4 @@ macro(add_aruco_test TESTNAME)
 endmacro()
 
 add_aruco_test(box_board box_board.cpp)
+add_aruco_test(grid_board grid_board.cpp)

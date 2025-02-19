@@ -70,12 +70,11 @@ Visualizer::Visualizer()
     Ogre::Light *light{scene_manager->createLight("light")};
     Ogre::SceneNode *lightNode{
         scene_manager->getRootSceneNode()->createChildSceneNode()};
-    lightNode->setPosition(10, 10, -15);
+    lightNode->setPosition(10, 15, 10);
     lightNode->attachObject(light);
 
-    camera_node->setPosition(2, 2, -1);
+    camera_node->setPosition(2, 1, 2);
     camera_node->lookAt(Ogre::Vector3{0, 0, 0}, Ogre::Node::TS_PARENT);
-    camera_node->roll(Ogre::Degree{-90});
 
     Ogre::Camera *camera{scene_manager->createCamera("camera")};
     camera->setNearClipDistance(0.1);
@@ -92,13 +91,10 @@ Visualizer::Visualizer()
 
     Ogre::Entity *ground_plane{
         scene_manager->createEntity(Ogre::SceneManager::PT_PLANE)};
-    // Turn the plane around. The boxes have negative Z coordinates in the
-    // coordinate system we are using.
+    // Make the plane point up (+Y direction).
     Ogre::SceneNode *child_node{static_environment->createChildSceneNode(
-        // TODO(vainiovano): Fix the static environment coordinate system to be
-        // centered instead of trying to center the plane here.
-        Ogre::Vector3{100.0F, 100.0F, 0.0F},
-        Ogre::Quaternion{Ogre::Degree{180}, Ogre::Vector3{1, 0, 0}})};
+        Ogre::Vector3{0.0F, 0.0F, 0.0F},
+        Ogre::Quaternion{Ogre::Degree{270}, Ogre::Vector3{1, 0, 0}})};
     child_node->attachObject(ground_plane);
     static_environment->setVisible(false);
 
@@ -131,8 +127,7 @@ void Visualizer::setStaticEnvironmentSize(float width, float height) {
     static_environment->setScale(0.005F * width, 0.005F * height, 1.0F);
 }
 
-void Visualizer::addBox(world::DynamicBoardId id,
-                        const box_board::BoxSize &size) {
+void Visualizer::addBox(world::DynamicBoardId id, const board::BoxSize &size) {
     Ogre::Entity *cube{
         scene_manager->createEntity(Ogre::SceneManager::PT_CUBE)};
     Ogre::SceneNode *node{

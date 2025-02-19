@@ -29,6 +29,7 @@
 #define TINYGLTF_NO_INCLUDE_JSON
 #include <tiny_gltf.h>
 
+#include <bananas_aruco/board.h>
 #include <bananas_aruco/box_board.h>
 
 namespace {
@@ -265,9 +266,10 @@ constexpr std::array<float,
 
 /// Produce a glTF asset for the given box, including the markers.
 auto produce_box_model(const cv::aruco::Dictionary &dictionary,
-                       const box_board::BoxSettings &box) -> tinygltf::Model {
+                       const board::BoxSettings &box) -> tinygltf::Model {
     // 1. Add in the ArUco markers
-    const cv::aruco::Board board{box_board::make_board(dictionary, box)};
+    const cv::aruco::Board board{
+        board::to_cv(dictionary, board::make_board(box))};
     auto model{produce_board_model(board)};
 
     // 2. Add the box in afterwards
@@ -363,7 +365,7 @@ auto main(int argc, char *argv[]) -> int {
     const cv::aruco::Dictionary dictionary{cv::aruco::getPredefinedDictionary(
         cv::aruco::PredefinedDictionaryType::DICT_5X5_100)};
 
-    box_board::BoxSettings box_settings;
+    board::BoxSettings box_settings;
     {
         std::ifstream in_stream{in_path};
         if (!in_stream) {
@@ -372,8 +374,7 @@ auto main(int argc, char *argv[]) -> int {
         }
 
         try {
-            box_board::from_json(nlohmann::json::parse(in_stream),
-                                 box_settings);
+            board::from_json(nlohmann::json::parse(in_stream), box_settings);
         } catch (const nlohmann::json::exception &e) {
             std::cerr << "Failed to parse box description file: " << e.what()
                       << '\n';
@@ -381,7 +382,7 @@ auto main(int argc, char *argv[]) -> int {
         }
     }
 
-    box_settings = box_board::example_box;
+    box_settings = board::example_box;
     const auto model{produce_box_model(dictionary, box_settings)};
 
     std::ofstream out_stream{out_path,

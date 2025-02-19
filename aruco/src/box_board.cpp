@@ -11,11 +11,12 @@
 #include <nlohmann/json.hpp>
 
 #include <opencv2/core/types.hpp>
-#include <opencv2/objdetect/aruco_board.hpp>
+
+#include <bananas_aruco/board.h>
 
 namespace {
 
-auto form_box_face(const box_board::MarkerSettings &face_settings)
+auto form_box_face(const board::BoxMarkerSettings &face_settings)
     -> std::array<cv::Point2f, 4> {
     const float half_side{face_settings.side / 2.0F};
     std::array<cv::Point2f, 4> face{cv::Point2f{-half_side, -half_side},
@@ -47,28 +48,30 @@ const float quarter_circle{std::atanf(1.0F) * 2.0F};
 
 } // namespace
 
-namespace box_board {
+namespace board {
 
 void from_json(const nlohmann::json &j, BoxSettings &box_settings) {
     j.at("size").get_to(box_settings.size);
 
     const auto &markers{j.at("markers")};
     auto forward_markers{
-        markers.value<std::vector<MarkerSettings>>("forward", {})};
+        markers.value<std::vector<BoxMarkerSettings>>("forward", {})};
     auto backward_markers{
-        markers.value<std::vector<MarkerSettings>>("backward", {})};
-    auto left_markers{markers.value<std::vector<MarkerSettings>>("left", {})};
-    auto right_markers{markers.value<std::vector<MarkerSettings>>("right", {})};
-    auto up_markers{markers.value<std::vector<MarkerSettings>>("up", {})};
-    auto down_markers{markers.value<std::vector<MarkerSettings>>("down", {})};
+        markers.value<std::vector<BoxMarkerSettings>>("backward", {})};
+    auto left_markers{
+        markers.value<std::vector<BoxMarkerSettings>>("left", {})};
+    auto right_markers{
+        markers.value<std::vector<BoxMarkerSettings>>("right", {})};
+    auto up_markers{markers.value<std::vector<BoxMarkerSettings>>("up", {})};
+    auto down_markers{
+        markers.value<std::vector<BoxMarkerSettings>>("down", {})};
     box_settings.markers = {
         std::move(forward_markers), std::move(backward_markers),
         std::move(left_markers),    std::move(right_markers),
         std::move(up_markers),      std::move(down_markers)};
 }
 
-auto make_board(const cv::aruco::Dictionary &dictionary,
-                const box_board::BoxSettings &settings) -> cv::aruco::Board {
+auto make_board(const BoxSettings &settings) -> board::Board {
     std::vector<std::vector<cv::Point3f>> object_points{};
     std::vector<int> ids{};
 
@@ -114,16 +117,15 @@ auto make_board(const cv::aruco::Dictionary &dictionary,
                  return {point.y, -settings.size.height / 2.0F, point.x};
              });
 
-    return {object_points, dictionary, ids};
+    return {std::move(object_points), std::move(ids)};
 }
 
-const box_board::BoxSettings example_box{
+const BoxSettings example_box{
     {0.125F, 0.134F, 0.18F},
-    {std::vector<box_board::MarkerSettings>{
-         {43, -0.0195F, 0.0515F, 0.0F, 0.024F},
-         {44, 0.018F, 0.0515F, 0.0F, 0.024F},
-         {48, -0.0195F, 0.0125F, 0.0F, 0.024F},
-         {49, 0.018F, 0.0125F, 0.0F, 0.024F}},
+    {std::vector<BoxMarkerSettings>{{43, -0.0195F, 0.0515F, 0.0F, 0.024F},
+                                    {44, 0.018F, 0.0515F, 0.0F, 0.024F},
+                                    {48, -0.0195F, 0.0125F, 0.0F, 0.024F},
+                                    {49, 0.018F, 0.0125F, 0.0F, 0.024F}},
      {},
      {{27, -0.028F, -0.0035F, quarter_circle, 0.038F},
       {30, 0.0315F, -0.0035F, quarter_circle, 0.038F}},
@@ -131,4 +133,4 @@ const box_board::BoxSettings example_box{
      {},
      {}}};
 
-} // namespace box_board
+} // namespace board
