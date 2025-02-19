@@ -1,9 +1,12 @@
 #include <bananas_aruco/affine_rotation.h>
 
+#include <array>
 #include <utility>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+
+#include <nlohmann/json.hpp>
 
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/core/matx.hpp>
@@ -46,6 +49,17 @@ auto AffineRotation::getTranslation() const -> Eigen::Vector3f {
 
 auto AffineRotation::getRotation() const -> Eigen::Quaternionf {
     return rotation;
+}
+
+void from_json(const nlohmann::json &j, AffineRotation &affine_rotation) {
+    std::array<float, 3> translation{};
+    j.at("translation").get_to(translation);
+
+    std::array<float, 4> rotation{};
+    j.at("rotation").get_to(rotation);
+
+    affine_rotation = {{translation[0], translation[1], translation[2]},
+                       {rotation[0], rotation[1], rotation[2], rotation[3]}};
 }
 
 auto from_cv(const cv::Vec3f &rvec, const cv::Vec3f &tvec) -> AffineRotation {

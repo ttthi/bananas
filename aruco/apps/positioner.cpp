@@ -1,16 +1,17 @@
 #include <cmath>
-#include <cstdint>
 #include <cstdlib>
+#include <exception>
+#include <fstream>
 #include <initializer_list>
 #include <iostream>
 #include <optional>
-#include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
-#include <gsl/span>
+#include <nlohmann/json.hpp>
 
 #include <opencv2/core/mat.hpp>
-#include <opencv2/core/persistence.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/highgui.hpp>
@@ -20,64 +21,32 @@
 #include <opencv2/videoio.hpp>
 
 #include <bananas_aruco/box_board.h>
-#include <bananas_aruco/grid_board.h>
 #include <bananas_aruco/visualization/visualizer.h>
 #include <bananas_aruco/world.h>
 
 namespace {
 
-const char *const about{"TODO"};
-const char *const keys{"{@infile  |<none> | Input video }"
-                       "{w        |       | Number of markers in X direction }"
-                       "{h        |       | Number of markers in Y direction }"
-                       "{l        |       | Marker side length }"
-                       "{s        |       | Separation between two consecutive "
-                       "markers in the grid }"
-                       "{c        |       | Cube side length }"
-                       "{m        |       | Cube marker margin }"
-                       "{cd       |       | Input file with custom dictionary }"
-                       "{vo       |       | Video output file }"};
+const char *const about{"Find camera and box locations from a video"};
+const char *const keys{
+    "{@infile | <none> | Input video }"
+    "{env     | <none> | JSON file describing the static environment }"
+    "{boxes   | <none> | JSON file containing the box descriptions }"
+    "{camera  | <none> | JSON file containing the camera information }"
+    "{vo      |        | Video output file }"};
 
-// TODO(vainiovano): Take the camera matrix as input
-// Phone camera:
-// const float focal_length_x{3208.864324F};
-// const float focal_length_y{3207.79768F};
-// const float optical_center_x{2028.096239F};
-// const float optical_center_y{1506.648877F};
+struct CameraCalibration {
+    float focal_length_x{};
+    float focal_length_y{};
+    float optical_center_x{};
+    float optical_center_y{};
+    std::vector<float> distortion_coefficients{};
+};
 
-// OAK-D Pro center camera, from the camera's default configuration:
-const float focal_length_x{3080.274658203125F};
-const float focal_length_y{3079.234130859375F};
-const float optical_center_x{1907.0689697265625F};
-const float optical_center_y{1073.337158203125F};
-const cv::Mat distortion_coeffs{14.909083366394043,
-                                -91.85440826416016,
-                                3.919406299246475e-05,
-                                0.0004296370898373425,
-                                352.7801513671875,
-                                14.676776885986328,
-                                -90.88777923583984,
-                                347.32025146484375,
-                                0.0,
-                                0.0,
-                                0.0,
-                                0.0,
-                                -0.0033481859136372805,
-                                0.0007485055830329657};
-
-const cv::Mat camera_matrix({3, 3},
-                            std::initializer_list<float>{
-                                focal_length_x, 0, optical_center_x, 0,
-                                focal_length_y, optical_center_y, 0, 0, 1});
-
-void read_dictionary(cv::aruco::Dictionary &dictionary,
-                     const std::string &file_name) {
-    const cv::FileStorage fs{file_name, cv::FileStorage::READ};
-    const bool readOk{dictionary.readDictionary(fs.root())};
-    if (!readOk) {
-        throw std::runtime_error{"Invalid dictionary file"};
-    }
-}
+// Mark to_json as potentially unused to make clang happy. This is ugly, but it
+// works.
+[[maybe_unused]] NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+    CameraCalibration, focal_length_x, focal_length_y, optical_center_x,
+    optical_center_y, distortion_coefficients);
 
 /// Returns true if the user wants to exit the application. Handles pausing and
 /// blocks until the user unpauses.
@@ -103,14 +72,9 @@ auto main(int argc, char *argv[]) -> int {
     cv::CommandLineParser parser{argc, argv, keys};
     parser.about(about);
 
-    visualizer::Visualizer visualizer{};
-    const auto ground_plane_width{parser.get<std::uint32_t>("w")};
-    const auto ground_plane_height{parser.get<std::uint32_t>("h")};
-    const auto ground_plane_marker_side{parser.get<float>("l")};
-    const auto ground_plane_marker_separation{parser.get<float>("s")};
-    // const auto cube_side{parser.get<float>("c")};
-    // const auto cube_margin{parser.get<float>("m")};
-    const auto dictionary_file{parser.get<std::string>("cd")};
+    const auto camera_file{parser.get<std::string>("camera")};
+    const auto static_environment_file{parser.get<std::string>("env")};
+    const auto box_file{parser.get<std::string>("boxes")};
     const auto video_file{parser.get<std::string>(0)};
     std::optional<std::string> video_output_file{};
     if (parser.has("vo")) {
@@ -123,45 +87,81 @@ auto main(int argc, char *argv[]) -> int {
         return EXIT_FAILURE;
     }
 
-    cv::aruco::Dictionary dictionary{};
-    try {
-        read_dictionary(dictionary, dictionary_file);
-    } catch (const std::runtime_error &e) {
-        std::cerr << "Failed to read dictionary: " << e.what() << '\n';
-        return EXIT_FAILURE;
+    cv::Mat camera_matrix{};
+    cv::Mat distortion_coefficients{};
+    {
+        std::ifstream camera_info_stream{camera_file};
+        if (!camera_info_stream) {
+            std::cerr << "Failed to open camera information file\n";
+            return EXIT_FAILURE;
+        }
+
+        CameraCalibration camera_info;
+        try {
+            const auto json = nlohmann::json::parse(camera_info_stream);
+            json.get_to(camera_info);
+        } catch (const std::exception &e) {
+            std::cerr << "Failed to parse camera information file: " << e.what()
+                      << '\n';
+            return EXIT_FAILURE;
+        }
+        cv::Mat calibration_matrix{{3, 3},
+                                   std::initializer_list<float>{
+                                       camera_info.focal_length_x, 0,
+                                       camera_info.optical_center_x, 0,
+                                       camera_info.focal_length_y,
+                                       camera_info.optical_center_y, 0, 0, 1}};
+        cv::Mat distortion_mat{camera_info.distortion_coefficients, true};
+
+        camera_matrix = std::move(calibration_matrix);
+        distortion_coefficients = std::move(distortion_mat);
     }
 
-    const board::GridSettings ground_settings{
-        {ground_plane_width, ground_plane_height},
-        ground_plane_marker_side,
-        ground_plane_marker_separation,
-        0};
-    const world::StaticEnvironment::PlacedObject ground_object{ground_settings,
-                                                               {}};
-    const world::StaticEnvironment environment{
-        dictionary, gsl::make_span(&ground_object, 1)};
-    world::World world{camera_matrix, distortion_coeffs, dictionary,
-                       environment};
+    world::StaticEnvironment static_environment{
+        cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_100), {}};
+    {
+        std::ifstream static_env_stream{static_environment_file};
+        if (!static_env_stream) {
+            std::cerr << "Failed to open static environment file\n";
+            return EXIT_FAILURE;
+        }
 
-    const auto box_id{world.addBox(board::example_box)};
-    visualizer.addBox(box_id, board::example_box.size);
+        try {
+            const auto json = nlohmann::json::parse(static_env_stream);
+            json.get_to(static_environment);
+        } catch (const std::exception &e) {
+            std::cerr << "Failed to parse static environment file: " << e.what()
+                      << '\n';
+            return EXIT_FAILURE;
+        }
+    }
+    std::vector<board::BoxSettings> boxes{};
+    {
+        std::ifstream box_stream{box_file};
+        if (!box_stream) {
+            std::cerr << "Failed to open box file\n";
+            return EXIT_FAILURE;
+        }
 
-    // const auto cube_id{world.addCube(cube_side, cube_margin, 25)};
-    // visualizer.addBox(cube_id, cube_side, cube_side, cube_side);
+        try {
+            const auto json = nlohmann::json::parse(box_stream);
+            json.get_to(boxes);
+        } catch (const std::exception &e) {
+            std::cerr << "Failed to parse box file: " << e.what() << '\n';
+            return EXIT_FAILURE;
+        }
+    }
 
-    // const auto cube2_id{world.addCube(cube_side, cube_margin, 31)};
-    // visualizer.addBox(cube2_id, cube_side, cube_side, cube_side);
+    world::World world{camera_matrix, distortion_coefficients,
+                       static_environment.getBoard().getDictionary(),
+                       static_environment};
+    visualizer::Visualizer visualizer{};
 
-    // const auto cube3_id{world.addCube(cube_side, cube_margin, 37)};
-    // visualizer.addBox(cube3_id, cube_side, cube_side, cube_side);
-
-    const float plane_width{
-        static_cast<float>(ground_plane_width) *
-        (ground_plane_marker_side + ground_plane_marker_separation)};
-    const float plane_height{
-        static_cast<float>(ground_plane_height) *
-        (ground_plane_marker_side + ground_plane_marker_separation)};
-    visualizer.setStaticEnvironmentSize(plane_width, plane_height);
+    visualizer.updateStaticEnvironment(static_environment.getObjects());
+    for (const auto &box : boxes) {
+        const auto box_id{world.addBox(box)};
+        visualizer.addBox(box_id, box.size);
+    }
 
     cv::VideoCapture capture{video_file};
     cv::VideoWriter output{};

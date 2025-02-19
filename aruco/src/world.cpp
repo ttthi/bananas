@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iterator>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <variant>
@@ -10,11 +11,14 @@
 
 #include <gsl/span>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/matx.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/objdetect/aruco_board.hpp>
+#include <opencv2/objdetect/aruco_dictionary.hpp>
 
 #include <bananas_aruco/affine_rotation.h>
 #include <bananas_aruco/board.h>
@@ -62,6 +66,33 @@ StaticEnvironment::StaticEnvironment(
     gsl::span<const StaticEnvironment::PlacedObject> objects)
     : board{to_board(dictionary, objects)},
       objects{objects.begin(), objects.end()} {};
+
+void from_json(const nlohmann::json &j,
+               StaticEnvironment::PlacedObject &object) {
+    const auto type{j.at("type").get<std::string>()};
+    const auto object_to_world{
+        j.at("object_to_world").get<affine_rotation::AffineRotation>()};
+
+    if (type == "box") {
+        const auto box{j.at("settings").get<board::BoxSettings>()};
+        object = {box, object_to_world};
+    } else if (type == "grid") {
+        const auto grid{j.at("settings").get<board::GridSettings>()};
+        object = {grid, object_to_world};
+    } else {
+        throw std::runtime_error{"Bad static environment member type " + type};
+    }
+}
+
+void from_json(const nlohmann::json &j, StaticEnvironment &environment) {
+    const int dictionary_id{j.at("dictionary_id").get<int>()};
+
+    std::vector<StaticEnvironment::PlacedObject> placed_objects{};
+    j.at("objects").get_to(placed_objects);
+
+    const auto &dictionary{cv::aruco::getPredefinedDictionary(dictionary_id)};
+    environment = {dictionary, placed_objects};
+}
 
 World::World(cv::Mat camera_matrix, cv::Mat distortion_coeffs,
              const cv::aruco::Dictionary &dictionary,

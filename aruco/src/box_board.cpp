@@ -120,17 +120,4 @@ auto make_board(const BoxSettings &settings) -> board::Board {
     return {std::move(object_points), std::move(ids)};
 }
 
-const BoxSettings example_box{
-    {0.125F, 0.134F, 0.18F},
-    {std::vector<BoxMarkerSettings>{{43, -0.0195F, 0.0515F, 0.0F, 0.024F},
-                                    {44, 0.018F, 0.0515F, 0.0F, 0.024F},
-                                    {48, -0.0195F, 0.0125F, 0.0F, 0.024F},
-                                    {49, 0.018F, 0.0125F, 0.0F, 0.024F}},
-     {},
-     {{27, -0.028F, -0.0035F, quarter_circle, 0.038F},
-      {30, 0.0315F, -0.0035F, quarter_circle, 0.038F}},
-     {},
-     {},
-     {}}};
-
 } // namespace board

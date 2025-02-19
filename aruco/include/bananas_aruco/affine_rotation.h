@@ -4,6 +4,8 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <opencv2/core/matx.hpp>
 #include <opencv2/core/types.hpp>
 
@@ -32,6 +34,8 @@ class AffineRotation {
     Eigen::Vector3f translation;
     Eigen::Quaternionf rotation;
 };
+
+void from_json(const nlohmann::json &j, AffineRotation &affine_rotation);
 
 auto from_cv(const cv::Vec3f &rvec, const cv::Vec3f &tvec) -> AffineRotation;
 
