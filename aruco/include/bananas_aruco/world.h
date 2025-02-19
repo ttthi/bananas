@@ -10,6 +10,8 @@
 #include <gsl/pointers>
 #include <gsl/span>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/objdetect/aruco_board.hpp>
@@ -50,14 +52,22 @@ class StaticEnvironment {
         return board;
     }
 
+    [[nodiscard]]
+    auto getObjects() const -> gsl::span<const PlacedObject> {
+        return objects;
+    }
+
   private:
     cv::aruco::Board board;
     /// The objects from which the static environment consists of. This may be
     /// used for serializing the object placements.
-    /// TODO(vainiovanio): Implement serializing and deserializing the static
-    /// environment.
+    /// TODO(vainiovano): Implement serializing the static environment.
     std::vector<PlacedObject> objects;
 };
+
+void from_json(const nlohmann::json &json,
+               StaticEnvironment::PlacedObject &object);
+void from_json(const nlohmann::json &json, StaticEnvironment &environment);
 
 class World {
   public:
