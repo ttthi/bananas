@@ -15,6 +15,7 @@ AffineRotation::AffineRotation()
     : translation{0.0F, 0.0F, 0.0F}, rotation{1.0F, 0.0F, 0.0F, 0.0F} {};
 AffineRotation::AffineRotation(Eigen::Vector3f translation,
                                Eigen::Quaternionf rotation)
+    // NOTE: The moves don't do anything, but clang-tidy doesn't know this.
     : translation{std::move(translation)}, rotation{std::move(rotation)} {};
 
 auto AffineRotation::operator*(const AffineRotation &other) const
