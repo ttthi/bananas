@@ -1,13 +1,13 @@
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
-#include <numeric>
 #include <optional>
 #include <stdexcept>
 #include <string>
-#include <utility>
-#include <vector>
+
+#include <gsl/span>
 
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/persistence.hpp>
@@ -20,6 +20,7 @@
 #include <opencv2/videoio.hpp>
 
 #include <bananas_aruco/box_board.h>
+#include <bananas_aruco/grid_board.h>
 #include <bananas_aruco/visualization/visualizer.h>
 #include <bananas_aruco/world.h>
 
@@ -69,13 +70,6 @@ const cv::Mat camera_matrix({3, 3},
                                 focal_length_x, 0, optical_center_x, 0,
                                 focal_length_y, optical_center_y, 0, 0, 1});
 
-struct GroundPlaneSettings {
-    cv::Size size{1, 1};
-    float marker_side{1.0F};
-    float marker_separation{1.0F};
-    int from_id{};
-};
-
 void read_dictionary(cv::aruco::Dictionary &dictionary,
                      const std::string &file_name) {
     const cv::FileStorage fs{file_name, cv::FileStorage::READ};
@@ -83,17 +77,6 @@ void read_dictionary(cv::aruco::Dictionary &dictionary,
     if (!readOk) {
         throw std::runtime_error{"Invalid dictionary file"};
     }
-}
-
-auto form_ground_board(const cv::aruco::Dictionary &dictionary,
-                       const GroundPlaneSettings &ground_settings)
-    -> cv::aruco::Board {
-    std::vector<int> ids(ground_settings.size.area());
-    std::iota(ids.begin(), ids.end(), ground_settings.from_id);
-    cv::aruco::GridBoard board{
-        ground_settings.size, ground_settings.marker_side,
-        ground_settings.marker_separation, dictionary, ids};
-    return board;
 }
 
 /// Returns true if the user wants to exit the application. Handles pausing and
@@ -121,8 +104,8 @@ auto main(int argc, char *argv[]) -> int {
     parser.about(about);
 
     visualizer::Visualizer visualizer{};
-    const auto ground_plane_width{parser.get<int>("w")};
-    const auto ground_plane_height{parser.get<int>("h")};
+    const auto ground_plane_width{parser.get<std::uint32_t>("w")};
+    const auto ground_plane_height{parser.get<std::uint32_t>("h")};
     const auto ground_plane_marker_side{parser.get<float>("l")};
     const auto ground_plane_marker_separation{parser.get<float>("s")};
     // const auto cube_side{parser.get<float>("c")};
@@ -148,17 +131,20 @@ auto main(int argc, char *argv[]) -> int {
         return EXIT_FAILURE;
     }
 
-    const struct GroundPlaneSettings ground_settings{
+    const board::GridSettings ground_settings{
         {ground_plane_width, ground_plane_height},
         ground_plane_marker_side,
         ground_plane_marker_separation,
         0};
-    auto ground_board{form_ground_board(dictionary, ground_settings)};
-    world::World world{camera_matrix, distortion_coeffs, std::move(dictionary),
-                       std::move(ground_board)};
+    const world::StaticEnvironment::PlacedObject ground_object{ground_settings,
+                                                               {}};
+    const world::StaticEnvironment environment{
+        dictionary, gsl::make_span(&ground_object, 1)};
+    world::World world{camera_matrix, distortion_coeffs, dictionary,
+                       environment};
 
-    const auto box_id{world.addBox(box_board::example_box)};
-    visualizer.addBox(box_id, box_board::example_box.size);
+    const auto box_id{world.addBox(board::example_box)};
+    visualizer.addBox(box_id, board::example_box.size);
 
     // const auto cube_id{world.addCube(cube_side, cube_margin, 25)};
     // visualizer.addBox(cube_id, cube_side, cube_side, cube_side);

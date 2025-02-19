@@ -1,9 +1,14 @@
 #include <bananas_aruco/world.h>
 
+#include <algorithm>
+#include <iterator>
 #include <optional>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 #include <vector>
+
+#include <gsl/span>
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/mat.hpp>
@@ -12,36 +17,79 @@
 #include <opencv2/objdetect/aruco_board.hpp>
 
 #include <bananas_aruco/affine_rotation.h>
+#include <bananas_aruco/board.h>
 #include <bananas_aruco/box_board.h>
+#include <bananas_aruco/grid_board.h>
+
+namespace {
+
+auto to_board(const cv::aruco::Dictionary &dictionary,
+              gsl::span<const world::StaticEnvironment::PlacedObject> objects)
+    -> cv::aruco::Board {
+    std::vector<std::vector<cv::Point3f>> obj_points{};
+    std::vector<int> ids{};
+
+    for (const auto &object : objects) {
+        const board::Board board{std::visit(
+            [](const auto &config) { return board::make_board(config); },
+            object.object)};
+
+        obj_points.reserve(obj_points.size() + board.obj_points.size());
+        std::transform(board.obj_points.cbegin(), board.obj_points.cend(),
+                       std::back_inserter(obj_points),
+                       [&object](const std::vector<cv::Point3f> &points) {
+                           std::vector<cv::Point3f> res(4);
+                           std::transform(
+                               points.cbegin(), points.cend(), res.begin(),
+                               [&object](cv::Point3f point) {
+                                   return object.object_to_world * point;
+                               });
+                           return res;
+                       });
+
+        ids.insert(ids.end(), board.marker_ids.cbegin(),
+                   board.marker_ids.cend());
+    }
+    return {obj_points, dictionary, ids};
+}
+
+} // namespace
 
 namespace world {
 
+StaticEnvironment::StaticEnvironment(
+    const cv::aruco::Dictionary &dictionary,
+    gsl::span<const StaticEnvironment::PlacedObject> objects)
+    : board{to_board(dictionary, objects)},
+      objects{objects.begin(), objects.end()} {};
+
 World::World(cv::Mat camera_matrix, cv::Mat distortion_coeffs,
-             cv::aruco::Dictionary dictionary,
-             cv::aruco::Board static_environment)
+             const cv::aruco::Dictionary &dictionary,
+             const StaticEnvironment &static_environment)
     : camera_matrix{std::move(camera_matrix)},
-      distortion_coeffs{std::move(distortion_coeffs)},
-      dictionary{std::move(dictionary)}, detector{this->dictionary, {}},
-      static_environment(std::move(static_environment)) {}
+      distortion_coeffs{std::move(distortion_coeffs)}, dictionary{&dictionary},
+      detector{dictionary, {}}, static_environment{&static_environment} {}
 
 auto World::addBoard(cv::aruco::Board board) -> DynamicBoardId {
     dynamic_boards.emplace(next_dynamic_board_id, std::move(board));
     return next_dynamic_board_id++;
 }
 
-auto World::addBox(const box_board::BoxSettings &settings) -> DynamicBoardId {
-    return World::addBoard(box_board::make_board(dictionary, settings));
+auto World::addBox(const board::BoxSettings &settings) -> DynamicBoardId {
+    return World::addBoard(
+        board::to_cv(*dictionary, board::make_board(settings)));
 }
 
 auto World::fit(const cv::Mat &image) const -> FitResult {
     std::vector<std::vector<cv::Point2f>> corners{};
     std::vector<std::vector<cv::Point2f>> rejected{};
     std::vector<int> ids{};
+    const auto &static_board{static_environment->getBoard()};
 
     detector.detectMarkers(image, corners, ids, rejected);
 
-    detector.refineDetectedMarkers(image, static_environment, corners, ids,
-                                   rejected, camera_matrix, distortion_coeffs);
+    detector.refineDetectedMarkers(image, static_board, corners, ids, rejected,
+                                   camera_matrix, distortion_coeffs);
     for (const auto &board : dynamic_boards) {
         detector.refineDetectedMarkers(image, board.second, corners, ids,
                                        rejected, camera_matrix,
@@ -51,8 +99,7 @@ auto World::fit(const cv::Mat &image) const -> FitResult {
     std::optional<affine_rotation::AffineRotation> camera_to_world{};
     std::unordered_map<DynamicBoardId, affine_rotation::AffineRotation>
         fit_boards{};
-    const auto static_environment_fit{
-        fitBoard(corners, ids, static_environment)};
+    const auto static_environment_fit{fitBoard(corners, ids, static_board)};
     if (static_environment_fit) {
         camera_to_world = static_environment_fit->inverse();
         // TODO(vainiovano): Allow producing results even if the exact camera
