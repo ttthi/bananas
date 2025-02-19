@@ -11,23 +11,17 @@ cmake_policy(SET CMP0146 OLD)
 include(FetchContent)
 FetchContent_Declare(
   GSL
-  GIT_REPOSITORY "https://github.com/microsoft/GSL"
-  GIT_TAG "v4.1.0"
-  GIT_SHALLOW ON)
+  URL "https://github.com/microsoft/GSL/archive/87f9d768866548b5b86e72be66c60c5abd4d9b37.zip")
 FetchContent_MakeAvailable(GSL)
 
 FetchContent_Declare(
   tinygltf
-  GIT_REPOSITORY "https://github.com/syoyo/tinygltf"
-  GIT_TAG "a5e653e46cca64bbc0ecee7ede007347a94c39b0"
-  GIT_SHALLOW ON)
+  URL https://github.com/syoyo/tinygltf/archive/a5e653e46cca64bbc0ecee7ede007347a94c39b0.zip)
 FetchContent_MakeAvailable(tinygltf)
 
 FetchContent_Declare(
   googletest
-  GIT_REPOSITORY "https://github.com/google/googletest"
-  GIT_TAG "c00fd25b71a17e645e4567fcb465c3fa532827d2"
-  GIT_SHALLOW ON)
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip)
 FetchContent_MakeAvailable(googletest)
 
 find_package(nlohmann_json 3.11.3 REQUIRED CONFIG)
