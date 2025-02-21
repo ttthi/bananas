@@ -133,13 +133,16 @@ auto World::fit(const cv::Mat &image) const -> FitResult {
     const auto static_environment_fit{fitBoard(corners, ids, static_board)};
     if (static_environment_fit) {
         camera_to_world = static_environment_fit->inverse();
+        // Help clang-tidy 18's bugprone-unchecked-optional-access lint. Newer
+        // versions are smarter.
+        const auto &camera_to_world_value{*camera_to_world};
         // TODO(vainiovano): Allow producing results even if the exact camera
         // location is not known.
         for (const auto &board : dynamic_boards) {
             const auto board_to_camera{fitBoard(corners, ids, board.second)};
             if (board_to_camera) {
                 fit_boards.emplace(board.first,
-                                   *camera_to_world * *board_to_camera);
+                                   camera_to_world_value * *board_to_camera);
             }
         }
     }
