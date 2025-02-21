@@ -84,9 +84,8 @@ class World {
   private:
     [[nodiscard]]
     auto fitBoard(const std::vector<std::vector<cv::Point2f>> &corners,
-                  const std::vector<int> &ids,
-                  const cv::aruco::Board &board) const
-        -> std::optional<affine_rotation::AffineRotation>;
+                  const std::vector<int> &ids, const cv::aruco::Board &board)
+        const -> std::optional<affine_rotation::AffineRotation>;
 
     cv::Mat camera_matrix;
     cv::Mat distortion_coeffs;

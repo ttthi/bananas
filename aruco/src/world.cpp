@@ -149,9 +149,8 @@ auto World::fit(const cv::Mat &image) const -> FitResult {
 }
 
 auto World::fitBoard(const std::vector<std::vector<cv::Point2f>> &corners,
-                     const std::vector<int> &ids,
-                     const cv::aruco::Board &board) const
-    -> std::optional<affine_rotation::AffineRotation> {
+                     const std::vector<int> &ids, const cv::aruco::Board &board)
+    const -> std::optional<affine_rotation::AffineRotation> {
     if (ids.empty()) {
         return {};
     }
