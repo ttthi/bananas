@@ -44,7 +44,7 @@ auto form_box_face(const board::BoxMarkerSettings &face_settings)
     return face;
 }
 
-const float quarter_circle{std::atanf(1.0F) * 2.0F};
+const float quarter_circle{std::atan(1.0F) * 2.0F};
 
 } // namespace
 

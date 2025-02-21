@@ -98,7 +98,7 @@ TEST(BoxBoardTest, DefaultOrientationsAreCorrect) {
 
 // Tests that rotated and offset markers are placed correctly.
 TEST(BoxBoardTest, RotationsAndOffsetsWork) {
-    const float quarter_circle{std::atanf(1.0F) * 2.0F};
+    const float quarter_circle{std::atan(1.0F) * 2.0F};
     const board::BoxSettings box{
         {3.0, 2.0, 1.0},
         {
