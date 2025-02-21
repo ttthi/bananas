@@ -1,0 +1,31 @@
+name: Build and test ArUco detection
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    container:
+      image: mainiomano/bananas-base:0.0.1
+    defaults:
+      run:
+        working-directory: aruco
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+        build_type: [Debug, Release]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure ${{ matrix.compiler }} ${{ matrix.build_type }}
+      env:
+        CXXFLAGS: ${{ matrix.build_type == 'Debug' && '-Werror -fsanitize=undefined,address' || '-Werror' }}
+      run: cmake -GNinja -S . -B build-${{ matrix.compiler }}-${{ matrix.build_type }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    - name: Build ${{ matrix.compiler }} ${{ matrix.build_type }}
+      run: cmake --build build-${{ matrix.compiler }}-${{ matrix.build_type }}
+    - name: Test ${{ matrix.compiler }} ${{ matrix.build_type }}
+      run: ctest --output-on-failure --test-dir build-${{ matrix.compiler }}-${{ matrix.build_type }}
+    - name: Lint
+      # Only run the lints once. Running them on more combinations wouldn't
+      # probably add much value.
+      if: ${{ matrix.compiler == 'clang++' && matrix.build_type == 'Debug' }}
+      run: ./run_lint.sh build-${{ matrix.compiler }}-${{ matrix.build_type }}
