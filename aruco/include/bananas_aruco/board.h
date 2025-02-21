@@ -15,8 +15,8 @@ struct Board {
 };
 
 [[nodiscard]]
-auto to_cv(const cv::aruco::Dictionary &dictionary, const Board &board)
-    -> cv::aruco::Board;
+auto to_cv(const cv::aruco::Dictionary &dictionary,
+           const Board &board) -> cv::aruco::Board;
 
 } // namespace board
 
