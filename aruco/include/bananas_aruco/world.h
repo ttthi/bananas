@@ -49,20 +49,20 @@ class StaticEnvironment {
 
     [[nodiscard]]
     auto getBoard() const -> const cv::aruco::Board & {
-        return board;
+        return board_;
     }
 
     [[nodiscard]]
     auto getObjects() const -> gsl::span<const PlacedObject> {
-        return objects;
+        return objects_;
     }
 
   private:
-    cv::aruco::Board board;
+    cv::aruco::Board board_;
     /// The objects from which the static environment consists of. This may be
     /// used for serializing the object placements.
     /// TODO(vainiovano): Implement serializing the static environment.
-    std::vector<PlacedObject> objects;
+    std::vector<PlacedObject> objects_;
 };
 
 void from_json(const nlohmann::json &json,
@@ -87,13 +87,13 @@ class World {
                   const std::vector<int> &ids, const cv::aruco::Board &board)
         const -> std::optional<affine_rotation::AffineRotation>;
 
-    cv::Mat camera_matrix;
-    cv::Mat distortion_coeffs;
-    gsl::not_null<const cv::aruco::Dictionary *> dictionary;
-    cv::aruco::ArucoDetector detector;
-    gsl::not_null<const StaticEnvironment *> static_environment;
-    std::unordered_map<DynamicBoardId, cv::aruco::Board> dynamic_boards{};
-    std::uint32_t next_dynamic_board_id{0};
+    cv::Mat camera_matrix_;
+    cv::Mat distortion_coeffs_;
+    gsl::not_null<const cv::aruco::Dictionary *> dictionary_;
+    cv::aruco::ArucoDetector detector_;
+    gsl::not_null<const StaticEnvironment *> static_environment_;
+    std::unordered_map<DynamicBoardId, cv::aruco::Board> dynamic_boards_{};
+    std::uint32_t next_dynamic_board_id_{0};
 };
 
 } // namespace world

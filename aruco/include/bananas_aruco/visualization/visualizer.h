@@ -29,7 +29,7 @@ class KeyHandler : public OgreBites::InputListener {
     auto mouseReleased(const OgreBites::MouseButtonEvent &evt) -> bool override;
 
   private:
-    OgreBites::CameraMan *camera_manager;
+    OgreBites::CameraMan *camera_manager_;
 };
 
 /// A wrapper that initializes an OgreBites::ApplicationContext and calls
@@ -53,16 +53,16 @@ class Visualizer {
     void addBox(world::DynamicBoardId id, const board::BoxSize &size);
 
   private:
-    InitializedContext context{};
-    gsl::not_null<Ogre::Root *> root;
-    gsl::not_null<Ogre::SceneManager *> scene_manager;
-    gsl::not_null<Ogre::SceneNode *> camera_node;
-    OgreBites::CameraMan camera_manager;
-    KeyHandler key_handler;
-    gsl::not_null<Ogre::SceneNode *> static_environment;
-    gsl::not_null<Ogre::SceneNode *> camera_visualization;
+    InitializedContext context_{};
+    gsl::not_null<Ogre::Root *> root_;
+    gsl::not_null<Ogre::SceneManager *> scene_manager_;
+    gsl::not_null<Ogre::SceneNode *> camera_node_;
+    OgreBites::CameraMan camera_manager_;
+    KeyHandler key_handler_;
+    gsl::not_null<Ogre::SceneNode *> static_environment_;
+    gsl::not_null<Ogre::SceneNode *> camera_visualization_;
     std::unordered_map<world::DynamicBoardId, Ogre::SceneNode *>
-        dynamic_environment{};
+        dynamic_environment_{};
 };
 
 } // namespace visualizer

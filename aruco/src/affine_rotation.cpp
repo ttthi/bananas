@@ -15,40 +15,40 @@
 namespace affine_rotation {
 
 AffineRotation::AffineRotation()
-    : translation{0.0F, 0.0F, 0.0F}, rotation{1.0F, 0.0F, 0.0F, 0.0F} {};
+    : translation_{0.0F, 0.0F, 0.0F}, rotation_{1.0F, 0.0F, 0.0F, 0.0F} {};
 AffineRotation::AffineRotation(Eigen::Vector3f translation,
                                Eigen::Quaternionf rotation)
     // NOTE: The moves don't do anything, but clang-tidy doesn't know this.
-    : translation{std::move(translation)}, rotation{std::move(rotation)} {};
+    : translation_{std::move(translation)}, rotation_{std::move(rotation)} {};
 
 auto AffineRotation::operator*(const AffineRotation &other) const
     -> AffineRotation {
-    return {translation + rotation * other.translation,
-            rotation * other.rotation};
+    return {translation_ + rotation_ * other.translation_,
+            rotation_ * other.rotation_};
 }
 
 void AffineRotation::operator*=(const AffineRotation &other) {
-    translation += rotation * other.translation;
-    rotation *= other.rotation;
+    translation_ += rotation_ * other.translation_;
+    rotation_ *= other.rotation_;
 }
 
 auto AffineRotation::operator*(cv::Point3f point) const -> cv::Point3f {
     const Eigen::Vector3f point_vec{point.x, point.y, point.z};
-    const Eigen::Vector3f result{translation + rotation * point_vec};
+    const Eigen::Vector3f result{translation_ + rotation_ * point_vec};
     return {result.x(), result.y(), result.z()};
 }
 
 auto AffineRotation::inverse() const -> AffineRotation {
-    const auto rotation_inverse{rotation.inverse()};
-    return {-(rotation_inverse * translation), rotation_inverse};
+    const auto rotation_inverse{rotation_.inverse()};
+    return {-(rotation_inverse * translation_), rotation_inverse};
 }
 
 auto AffineRotation::getTranslation() const -> Eigen::Vector3f {
-    return translation;
+    return translation_;
 }
 
 auto AffineRotation::getRotation() const -> Eigen::Quaternionf {
-    return rotation;
+    return rotation_;
 }
 
 void from_json(const nlohmann::json &j, AffineRotation &affine_rotation) {
