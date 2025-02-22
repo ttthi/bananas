@@ -19,7 +19,7 @@ jobs:
     - name: Configure ${{ matrix.compiler }} ${{ matrix.build_type }}
       env:
         CXXFLAGS: ${{ matrix.build_type == 'Debug' && '-Werror -fsanitize=undefined,address' || '-Werror' }}
-      run: cmake -GNinja -S . -B build-${{ matrix.compiler }}-${{ matrix.build_type }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      run: cmake -GNinja -S . -B build-${{ matrix.compiler }}-${{ matrix.build_type }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
     - name: Build ${{ matrix.compiler }} ${{ matrix.build_type }}
       run: cmake --build build-${{ matrix.compiler }}-${{ matrix.build_type }}
     - name: Test ${{ matrix.compiler }} ${{ matrix.build_type }}
