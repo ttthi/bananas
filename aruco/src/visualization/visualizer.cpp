@@ -117,12 +117,13 @@ Visualizer::Visualizer()
           scene_manager->getRootSceneNode()->createChildSceneNode()},
       camera_visualization{
           scene_manager->getRootSceneNode()->createChildSceneNode()} {
-    Ogre::RTShader::ShaderGenerator *shadergen{
+    const gsl::not_null<Ogre::RTShader::ShaderGenerator *> shadergen{
         Ogre::RTShader::ShaderGenerator::getSingletonPtr()};
     shadergen->addSceneManager(scene_manager);
 
-    Ogre::Light *light{scene_manager->createLight("light")};
-    Ogre::SceneNode *lightNode{
+    const gsl::not_null<Ogre::Light *> light{
+        scene_manager->createLight("light")};
+    const gsl::not_null<Ogre::SceneNode *> lightNode{
         scene_manager->getRootSceneNode()->createChildSceneNode()};
     lightNode->setPosition(10, 15, 10);
     lightNode->attachObject(light);
@@ -130,7 +131,8 @@ Visualizer::Visualizer()
     camera_node->setPosition(2, 1, 2);
     camera_node->lookAt(Ogre::Vector3{0, 0, 0}, Ogre::Node::TS_PARENT);
 
-    Ogre::Camera *camera{scene_manager->createCamera("camera")};
+    const gsl::not_null<Ogre::Camera *> camera{
+        scene_manager->createCamera("camera")};
     camera->setNearClipDistance(0.1);
     camera->setAutoAspectRatio(true);
     camera_node->attachObject(camera);
@@ -143,15 +145,16 @@ Visualizer::Visualizer()
     context.addInputListener(&key_handler);
     context.addInputListener(&camera_manager);
 
-    Ogre::Entity *ground_plane{
+    const gsl::not_null<Ogre::Entity *> ground_plane{
         scene_manager->createEntity(Ogre::SceneManager::PT_PLANE)};
     // Make the plane point up (+Y direction).
-    Ogre::SceneNode *child_node{static_environment->createChildSceneNode(
-        Ogre::Vector3{0.0F, 0.0F, 0.0F},
-        Ogre::Quaternion{Ogre::Degree{270}, Ogre::Vector3{1, 0, 0}})};
+    const gsl::not_null<Ogre::SceneNode *> child_node{
+        static_environment->createChildSceneNode(
+            Ogre::Vector3{0.0F, 0.0F, 0.0F},
+            Ogre::Quaternion{Ogre::Degree{270}, Ogre::Vector3{1, 0, 0}})};
     child_node->attachObject(ground_plane);
 
-    Ogre::Entity *camera_visualization_entity{
+    const gsl::not_null<Ogre::Entity *> camera_visualization_entity{
         scene_manager->createEntity(Ogre::SceneManager::PT_CUBE)};
     camera_visualization->setScale(0.00025F, 0.00025F, 0.00125F);
     camera_visualization->attachObject(camera_visualization_entity);
@@ -186,9 +189,9 @@ void Visualizer::updateStaticEnvironment(
 }
 
 void Visualizer::addBox(world::DynamicBoardId id, const board::BoxSize &size) {
-    Ogre::Entity *cube{
+    const gsl::not_null<Ogre::Entity *> cube{
         scene_manager->createEntity(Ogre::SceneManager::PT_CUBE)};
-    Ogre::SceneNode *node{
+    const gsl::not_null<Ogre::SceneNode *> node{
         scene_manager->getRootSceneNode()->createChildSceneNode()};
 
     node->setScale(
