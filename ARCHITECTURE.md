@@ -1,6 +1,6 @@
 # Planned system architecture
 
-## Drone
+## Drone (Henrik, Pekko, Väinö)
 
 The drone's task is to locate the robot and the boxes using a camera, relocating
 itself to locations where it can see them best. The drone will have two
