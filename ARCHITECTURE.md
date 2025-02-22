@@ -23,7 +23,7 @@ visualizing the state of our own systems and provides observability for them: it
 shows how the system sees its own state, including the locations of the boxes
 and the robot.
 
-### Camera processing
+### Camera processing (Väinö, Chen)
 
 The camera connected to the Jetson is required for two purposes: finding the
 exact location of the drone and finding where our robot is.
