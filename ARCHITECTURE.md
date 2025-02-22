@@ -28,17 +28,17 @@ flowchart TB
             control[Bananas flight control software]
         end
 
-        px4<-->|"Mavlink (USB)"|control
+        px4<-->|"MAVLink (USB)"|control
     end
 
     subgraph Ground station
-        proxy[Mavlink router]
+        proxy[MAVLink router]
         qgc[QGroundControl]
         monitor[Bananas monitoring software]
 
-        proxy<-.->|"Mavlink (Radio)"|px4
-        proxy<-->|"Mavlink (IPC)"|qgc
-        proxy<-->|"Mavlink (IPC)"|monitor
+        proxy<-.->|"MAVLink (Radio)"|px4
+        proxy<-->|"MAVLink (IPC)"|qgc
+        proxy<-->|"MAVLink (IPC)"|monitor
     end
 ```
 
@@ -87,11 +87,11 @@ flowchart TB
     end
 
     subgraph Ground station
-        proxy[Mavlink router]
+        proxy[MAVLink router]
         qgc[QGroundControl]
 
-        proxy<-.->|"Mavlink (Radio)"|px4
-        proxy<-->|"Mavlink (IPC)"|qgc
+        proxy<-.->|"MAVLink (Radio)"|px4
+        proxy<-->|"MAVLink (IPC)"|qgc
     end
 
     subgraph Robot
