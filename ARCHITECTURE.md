@@ -67,3 +67,36 @@ flowchart TB
     px4-->|Telemetry|qgc
     control-->|Debugging and visualization information|monitor
 ```
+## Robot
+
+The robots task is to pick up and stack boxes based on the information/commands received from the drone. The robot has a Jetson Nano as it's onboard computer, arm for picking and placing boxes, and two tracks for moving around. The robot lacks any sensors, besides one or more cameras (mainly for collision avoidance and fine tuning the the arm), thus it relies on the drone giving information, such as its position and the position of the boxes. The robot relies on the open source software Jetbot for basic controls, on top of which we build our own control software.
+
+### Communication
+
+Depending on wether the drone will have WiFi antennas installed, it will either communicate directly with the drone through WiFi/Radio or through the Ground Control Station through Wifi.
+
+```mermaid
+---
+title: Robot communication links
+---
+flowchart TB
+    subgraph Drone
+        subgraph Pixhawk
+            px4[PX4 autopilot]
+        end
+    end
+
+    subgraph Ground station
+        proxy[Mavlink router]
+        qgc[QGroundControl]
+
+        proxy<-.->|"Mavlink (Radio)"|px4
+        proxy<-->|"Mavlink (IPC)"|qgc
+    end
+
+    subgraph Robot
+        nano[Jetson]
+
+        nano<-->|"TCP (WiFi)"|qgc
+    end
+```
