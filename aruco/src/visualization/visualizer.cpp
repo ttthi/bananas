@@ -145,15 +145,6 @@ Visualizer::Visualizer()
     context_.addInputListener(&key_handler_);
     context_.addInputListener(&camera_manager_);
 
-    const gsl::not_null<Ogre::Entity *> ground_plane{
-        scene_manager_->createEntity(Ogre::SceneManager::PT_PLANE)};
-    // Make the plane point up (+Y direction).
-    const gsl::not_null<Ogre::SceneNode *> child_node{
-        static_environment_->createChildSceneNode(
-            Ogre::Vector3{0.0F, 0.0F, 0.0F},
-            Ogre::Quaternion{Ogre::Degree{270}, Ogre::Vector3{1, 0, 0}})};
-    child_node->attachObject(ground_plane);
-
     const gsl::not_null<Ogre::Entity *> camera_visualization_entity{
         scene_manager_->createEntity(Ogre::SceneManager::PT_CUBE)};
     camera_visualization_->setScale(0.00025F, 0.00025F, 0.00125F);
