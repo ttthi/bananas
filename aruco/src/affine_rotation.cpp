@@ -34,7 +34,7 @@ void AffineRotation::operator*=(const AffineRotation &other) {
 
 auto AffineRotation::operator*(cv::Point3f point) const -> cv::Point3f {
     const Eigen::Vector3f point_vec{point.x, point.y, point.z};
-    const auto result{translation + rotation * point_vec};
+    const Eigen::Vector3f result{translation + rotation * point_vec};
     return {result.x(), result.y(), result.z()};
 }
 
