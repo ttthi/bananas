@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <gsl/pointers>
 #include <gsl/span>
 
 #include <OgreApplicationContext.h>
@@ -53,13 +54,13 @@ class Visualizer {
 
   private:
     InitializedContext context{};
-    Ogre::Root *root;
-    Ogre::SceneManager *scene_manager;
-    Ogre::SceneNode *camera_node;
+    gsl::not_null<Ogre::Root *> root;
+    gsl::not_null<Ogre::SceneManager *> scene_manager;
+    gsl::not_null<Ogre::SceneNode *> camera_node;
     OgreBites::CameraMan camera_manager;
     KeyHandler key_handler;
-    Ogre::SceneNode *static_environment;
-    Ogre::SceneNode *camera_visualization;
+    gsl::not_null<Ogre::SceneNode *> static_environment;
+    gsl::not_null<Ogre::SceneNode *> camera_visualization;
     std::unordered_map<world::DynamicBoardId, Ogre::SceneNode *>
         dynamic_environment{};
 };
