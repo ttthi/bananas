@@ -31,8 +31,8 @@ class AffineRotation {
     [[nodiscard]] auto getRotation() const -> Eigen::Quaternionf;
 
   private:
-    Eigen::Vector3f translation;
-    Eigen::Quaternionf rotation;
+    Eigen::Vector3f translation_;
+    Eigen::Quaternionf rotation_;
 };
 
 void from_json(const nlohmann::json &j, AffineRotation &affine_rotation);

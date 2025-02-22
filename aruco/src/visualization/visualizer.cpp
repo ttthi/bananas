@@ -44,14 +44,14 @@ class CreateObjectNodeVisitor {
   public:
     CreateObjectNodeVisitor(gsl::not_null<Ogre::SceneManager *> scene_manager,
                             gsl::not_null<Ogre::SceneNode *> parent)
-        : scene_manager{scene_manager}, parent_node{parent} {}
+        : scene_manager_{scene_manager}, parent_node_{parent} {}
 
     auto operator()(const board::BoxSettings &box_settings) const
         -> gsl::not_null<Ogre::SceneNode *> {
         const gsl::not_null<Ogre::Entity *> cube{
-            scene_manager->createEntity(Ogre::SceneManager::PT_CUBE)};
+            scene_manager_->createEntity(Ogre::SceneManager::PT_CUBE)};
         const gsl::not_null<Ogre::SceneNode *> node{
-            parent_node->createChildSceneNode()};
+            parent_node_->createChildSceneNode()};
 
         node->setScale({0.01F * box_settings.size.width,
                         0.01F * box_settings.size.height,
@@ -64,9 +64,9 @@ class CreateObjectNodeVisitor {
     auto operator()(const board::GridSettings &grid_settings) const
         -> gsl::not_null<Ogre::SceneNode *> {
         const gsl::not_null<Ogre::Entity *> plane{
-            scene_manager->createEntity(Ogre::SceneManager::PT_PLANE)};
+            scene_manager_->createEntity(Ogre::SceneManager::PT_PLANE)};
         const gsl::not_null<Ogre::SceneNode *> node{
-            parent_node->createChildSceneNode()};
+            parent_node_->createChildSceneNode()};
 
         // Make the plane point up (+Y direction) by default.
         const gsl::not_null<Ogre::SceneNode *> child_node{
@@ -82,8 +82,8 @@ class CreateObjectNodeVisitor {
     }
 
   private:
-    gsl::not_null<Ogre::SceneManager *> scene_manager;
-    gsl::not_null<Ogre::SceneNode *> parent_node;
+    gsl::not_null<Ogre::SceneManager *> scene_manager_;
+    gsl::not_null<Ogre::SceneNode *> parent_node_;
 };
 
 } // namespace
@@ -91,17 +91,17 @@ class CreateObjectNodeVisitor {
 namespace visualizer {
 
 KeyHandler::KeyHandler(OgreBites::CameraMan *camera_manager)
-    : camera_manager{camera_manager} {}
+    : camera_manager_{camera_manager} {}
 
 auto KeyHandler::mousePressed(const OgreBites::MouseButtonEvent & /*evt*/)
     -> bool {
-    camera_manager->setStyle(OgreBites::CameraStyle::CS_FREELOOK);
+    camera_manager_->setStyle(OgreBites::CameraStyle::CS_FREELOOK);
     return true;
 }
 
 auto KeyHandler::mouseReleased(const OgreBites::MouseButtonEvent & /*evt*/)
     -> bool {
-    camera_manager->setStyle(OgreBites::CameraStyle::CS_MANUAL);
+    camera_manager_->setStyle(OgreBites::CameraStyle::CS_MANUAL);
     return true;
 }
 
@@ -110,63 +110,63 @@ InitializedContext::InitializedContext() : OgreBites::ApplicationContext{} {
 }
 
 Visualizer::Visualizer()
-    : root{context.getRoot()}, scene_manager{root->createSceneManager()},
-      camera_node{scene_manager->getRootSceneNode()->createChildSceneNode()},
-      camera_manager{camera_node}, key_handler{&camera_manager},
-      static_environment{
-          scene_manager->getRootSceneNode()->createChildSceneNode()},
-      camera_visualization{
-          scene_manager->getRootSceneNode()->createChildSceneNode()} {
+    : root_{context_.getRoot()}, scene_manager_{root_->createSceneManager()},
+      camera_node_{scene_manager_->getRootSceneNode()->createChildSceneNode()},
+      camera_manager_{camera_node_}, key_handler_{&camera_manager_},
+      static_environment_{
+          scene_manager_->getRootSceneNode()->createChildSceneNode()},
+      camera_visualization_{
+          scene_manager_->getRootSceneNode()->createChildSceneNode()} {
     const gsl::not_null<Ogre::RTShader::ShaderGenerator *> shadergen{
         Ogre::RTShader::ShaderGenerator::getSingletonPtr()};
-    shadergen->addSceneManager(scene_manager);
+    shadergen->addSceneManager(scene_manager_);
 
     const gsl::not_null<Ogre::Light *> light{
-        scene_manager->createLight("light")};
+        scene_manager_->createLight("light")};
     const gsl::not_null<Ogre::SceneNode *> lightNode{
-        scene_manager->getRootSceneNode()->createChildSceneNode()};
+        scene_manager_->getRootSceneNode()->createChildSceneNode()};
     lightNode->setPosition(10, 15, 10);
     lightNode->attachObject(light);
 
-    camera_node->setPosition(2, 1, 2);
-    camera_node->lookAt(Ogre::Vector3{0, 0, 0}, Ogre::Node::TS_PARENT);
+    camera_node_->setPosition(2, 1, 2);
+    camera_node_->lookAt(Ogre::Vector3{0, 0, 0}, Ogre::Node::TS_PARENT);
 
     const gsl::not_null<Ogre::Camera *> camera{
-        scene_manager->createCamera("camera")};
+        scene_manager_->createCamera("camera")};
     camera->setNearClipDistance(0.1);
     camera->setAutoAspectRatio(true);
-    camera_node->attachObject(camera);
+    camera_node_->attachObject(camera);
 
-    camera_manager.setStyle(OgreBites::CameraStyle::CS_MANUAL);
-    camera_manager.setTopSpeed(2.0F);
+    camera_manager_.setStyle(OgreBites::CameraStyle::CS_MANUAL);
+    camera_manager_.setTopSpeed(2.0F);
 
-    context.getRenderWindow()->addViewport(camera);
+    context_.getRenderWindow()->addViewport(camera);
 
-    context.addInputListener(&key_handler);
-    context.addInputListener(&camera_manager);
+    context_.addInputListener(&key_handler_);
+    context_.addInputListener(&camera_manager_);
 
     const gsl::not_null<Ogre::Entity *> ground_plane{
-        scene_manager->createEntity(Ogre::SceneManager::PT_PLANE)};
+        scene_manager_->createEntity(Ogre::SceneManager::PT_PLANE)};
     // Make the plane point up (+Y direction).
     const gsl::not_null<Ogre::SceneNode *> child_node{
-        static_environment->createChildSceneNode(
+        static_environment_->createChildSceneNode(
             Ogre::Vector3{0.0F, 0.0F, 0.0F},
             Ogre::Quaternion{Ogre::Degree{270}, Ogre::Vector3{1, 0, 0}})};
     child_node->attachObject(ground_plane);
 
     const gsl::not_null<Ogre::Entity *> camera_visualization_entity{
-        scene_manager->createEntity(Ogre::SceneManager::PT_CUBE)};
-    camera_visualization->setScale(0.00025F, 0.00025F, 0.00125F);
-    camera_visualization->attachObject(camera_visualization_entity);
-    camera_visualization->setVisible(false);
+        scene_manager_->createEntity(Ogre::SceneManager::PT_CUBE)};
+    camera_visualization_->setScale(0.00025F, 0.00025F, 0.00125F);
+    camera_visualization_->attachObject(camera_visualization_entity);
+    camera_visualization_->setVisible(false);
 }
 
 void Visualizer::update(const world::FitResult &fit) {
-    camera_visualization->setVisible(fit.camera_to_world.has_value());
+    camera_visualization_->setVisible(fit.camera_to_world.has_value());
     if (fit.camera_to_world) {
-        set_transform(camera_visualization, *fit.camera_to_world);
+        set_transform(camera_visualization_, *fit.camera_to_world);
     }
-    for (const auto &box : dynamic_environment) {
+    for (const auto &box : dynamic_environment_) {
         const auto box_fit{fit.dynamic_boards_to_world.find(box.first)};
         const bool has_fit{box_fit != fit.dynamic_boards_to_world.cend()};
         box.second->setVisible(has_fit);
@@ -176,12 +176,12 @@ void Visualizer::update(const world::FitResult &fit) {
     }
 }
 
-void Visualizer::refresh() { context.getRoot()->renderOneFrame(); }
+void Visualizer::refresh() { context_.getRoot()->renderOneFrame(); }
 
 void Visualizer::updateStaticEnvironment(
     gsl::span<const world::StaticEnvironment::PlacedObject> objects) {
-    static_environment->removeAndDestroyAllChildren();
-    const CreateObjectNodeVisitor visitor{scene_manager, static_environment};
+    static_environment_->removeAndDestroyAllChildren();
+    const CreateObjectNodeVisitor visitor{scene_manager_, static_environment_};
     for (const auto &object : objects) {
         const auto node{std::visit(visitor, object.object)};
         set_transform(node, object.object_to_world);
@@ -190,16 +190,16 @@ void Visualizer::updateStaticEnvironment(
 
 void Visualizer::addBox(world::DynamicBoardId id, const board::BoxSize &size) {
     const gsl::not_null<Ogre::Entity *> cube{
-        scene_manager->createEntity(Ogre::SceneManager::PT_CUBE)};
+        scene_manager_->createEntity(Ogre::SceneManager::PT_CUBE)};
     const gsl::not_null<Ogre::SceneNode *> node{
-        scene_manager->getRootSceneNode()->createChildSceneNode()};
+        scene_manager_->getRootSceneNode()->createChildSceneNode()};
 
     node->setScale(
         {0.01F * size.width, 0.01F * size.height, 0.01F * size.depth});
     node->attachObject(cube);
     node->setVisible(false);
 
-    dynamic_environment.emplace(id, node);
+    dynamic_environment_.emplace(id, node);
 }
 
 } // namespace visualizer

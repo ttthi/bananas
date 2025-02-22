@@ -64,8 +64,8 @@ namespace world {
 StaticEnvironment::StaticEnvironment(
     const cv::aruco::Dictionary &dictionary,
     gsl::span<const StaticEnvironment::PlacedObject> objects)
-    : board{to_board(dictionary, objects)},
-      objects{objects.begin(), objects.end()} {};
+    : board_{to_board(dictionary, objects)},
+      objects_{objects.begin(), objects.end()} {};
 
 void from_json(const nlohmann::json &j,
                StaticEnvironment::PlacedObject &object) {
@@ -97,34 +97,35 @@ void from_json(const nlohmann::json &j, StaticEnvironment &environment) {
 World::World(cv::Mat camera_matrix, cv::Mat distortion_coeffs,
              const cv::aruco::Dictionary &dictionary,
              const StaticEnvironment &static_environment)
-    : camera_matrix{std::move(camera_matrix)},
-      distortion_coeffs{std::move(distortion_coeffs)}, dictionary{&dictionary},
-      detector{dictionary, {}}, static_environment{&static_environment} {}
+    : camera_matrix_{std::move(camera_matrix)},
+      distortion_coeffs_{std::move(distortion_coeffs)},
+      dictionary_{&dictionary}, detector_{dictionary, {}},
+      static_environment_{&static_environment} {}
 
 auto World::addBoard(cv::aruco::Board board) -> DynamicBoardId {
-    dynamic_boards.emplace(next_dynamic_board_id, std::move(board));
-    return next_dynamic_board_id++;
+    dynamic_boards_.emplace(next_dynamic_board_id_, std::move(board));
+    return next_dynamic_board_id_++;
 }
 
 auto World::addBox(const board::BoxSettings &settings) -> DynamicBoardId {
     return World::addBoard(
-        board::to_cv(*dictionary, board::make_board(settings)));
+        board::to_cv(*dictionary_, board::make_board(settings)));
 }
 
 auto World::fit(const cv::Mat &image) const -> FitResult {
     std::vector<std::vector<cv::Point2f>> corners{};
     std::vector<std::vector<cv::Point2f>> rejected{};
     std::vector<int> ids{};
-    const auto &static_board{static_environment->getBoard()};
+    const auto &static_board{static_environment_->getBoard()};
 
-    detector.detectMarkers(image, corners, ids, rejected);
+    detector_.detectMarkers(image, corners, ids, rejected);
 
-    detector.refineDetectedMarkers(image, static_board, corners, ids, rejected,
-                                   camera_matrix, distortion_coeffs);
-    for (const auto &board : dynamic_boards) {
-        detector.refineDetectedMarkers(image, board.second, corners, ids,
-                                       rejected, camera_matrix,
-                                       distortion_coeffs);
+    detector_.refineDetectedMarkers(image, static_board, corners, ids, rejected,
+                                    camera_matrix_, distortion_coeffs_);
+    for (const auto &board : dynamic_boards_) {
+        detector_.refineDetectedMarkers(image, board.second, corners, ids,
+                                        rejected, camera_matrix_,
+                                        distortion_coeffs_);
     }
 
     std::optional<affine_rotation::AffineRotation> camera_to_world{};
@@ -138,7 +139,7 @@ auto World::fit(const cv::Mat &image) const -> FitResult {
         const auto &camera_to_world_value{*camera_to_world};
         // TODO(vainiovano): Allow producing results even if the exact camera
         // location is not known.
-        for (const auto &board : dynamic_boards) {
+        for (const auto &board : dynamic_boards_) {
             const auto board_to_camera{fitBoard(corners, ids, board.second)};
             if (board_to_camera) {
                 fit_boards.emplace(board.first,
@@ -167,8 +168,8 @@ auto World::fitBoard(const std::vector<std::vector<cv::Point2f>> &corners,
 
     cv::Vec3f rvec;
     cv::Vec3f tvec;
-    if (!cv::solvePnP(object_points, image_points, camera_matrix,
-                      distortion_coeffs, rvec, tvec)) {
+    if (!cv::solvePnP(object_points, image_points, camera_matrix_,
+                      distortion_coeffs_, rvec, tvec)) {
         return {};
     }
     return affine_rotation::from_cv(rvec, tvec);
