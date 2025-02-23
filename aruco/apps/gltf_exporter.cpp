@@ -4,7 +4,9 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <numeric>
@@ -35,10 +37,10 @@
 namespace {
 
 const char *const about{
-    "Generate a binary glTF file from a box ArUco marker placement"};
+    "Generate binary glTF files from a set of box ArUco marker placements"};
 const char *const keys{
-    "{@inpath  | <none> | JSON file containing box description }"
-    "{@outpath | <none> | Output GLB file path }"};
+    "{@inpath  | <none> | JSON file containing box descriptions }"
+    "{o        | .      | glTF output directory }"};
 
 constexpr std::size_t corners_per_marker{4};
 constexpr std::size_t floats_per_position{3};
@@ -348,6 +350,21 @@ auto produce_box_model(const cv::aruco::Dictionary &dictionary,
     return model;
 }
 
+void produce_failed_open_diagnostics(std::ostream &stream,
+                                     const std::filesystem::path &out_dir,
+                                     const std::filesystem::path &out_path) {
+    stream << "Failed to open output file "
+           << std::quoted(out_path.string(), '`') << '\n';
+    // Racy, but hopefully fine for error checking.
+    if (!std::filesystem::exists(out_dir)) {
+        stream << "Note: directory " << std::quoted(out_dir.string(), '`')
+               << " does not exist.\n";
+    } else if (!std::filesystem::is_directory(out_dir)) {
+        stream << "Note: " << std::quoted(out_dir.string(), '`')
+               << " is not a directory.\n";
+    }
+}
+
 } // namespace
 
 auto main(int argc, char *argv[]) -> int {
@@ -355,7 +372,7 @@ auto main(int argc, char *argv[]) -> int {
     parser.about(about);
 
     const auto in_path{parser.get<std::string>(0)};
-    const auto out_path{parser.get<std::string>(1)};
+    const std::filesystem::path out_dir{parser.get<std::string>("o")};
     if (!parser.check()) {
         parser.printErrors();
         parser.printMessage();
@@ -365,7 +382,7 @@ auto main(int argc, char *argv[]) -> int {
     const cv::aruco::Dictionary dictionary{cv::aruco::getPredefinedDictionary(
         cv::aruco::PredefinedDictionaryType::DICT_5X5_100)};
 
-    board::BoxSettings box_settings;
+    std::vector<board::BoxSettings> box_settings;
     {
         std::ifstream in_stream{in_path};
         if (!in_stream) {
@@ -374,7 +391,8 @@ auto main(int argc, char *argv[]) -> int {
         }
 
         try {
-            board::from_json(nlohmann::json::parse(in_stream), box_settings);
+            const auto json = nlohmann::json::parse(in_stream);
+            json.get_to(box_settings);
         } catch (const nlohmann::json::exception &e) {
             std::cerr << "Failed to parse box description file: " << e.what()
                       << '\n';
@@ -382,26 +400,36 @@ auto main(int argc, char *argv[]) -> int {
         }
     }
 
-    const auto model{produce_box_model(dictionary, box_settings)};
+    for (std::size_t i{0}; i < box_settings.size(); ++i) {
+        const std::string out_filename{std::string{"box_"} + std::to_string(i) +
+                                       std::string{".glb"}};
+        const std::filesystem::path gltf_out_path{out_dir / out_filename};
+        const auto model{produce_box_model(dictionary, box_settings[i])};
 
-    std::ofstream out_stream{out_path,
-                             std::ios_base::out | std::ios_base::binary};
-    if (!out_stream) {
-        std::cerr << "Failed to open output file\n";
-        return EXIT_FAILURE;
-    }
+        std::ofstream gltf_out{gltf_out_path,
+                               std::ios_base::out | std::ios_base::binary};
+        if (!gltf_out) {
+            produce_failed_open_diagnostics(std::cerr, out_dir, gltf_out_path);
+            return EXIT_FAILURE;
+        }
 
-    try {
-        tinygltf::TinyGLTF gltf{};
-        gltf.WriteGltfSceneToStream(&model, out_stream, false, true);
-    } catch (const nlohmann::json::exception &e) {
-        std::cerr << "Failed to write JSON output: " << e.what() << '\n';
-        return EXIT_FAILURE;
-    }
+        try {
+            tinygltf::TinyGLTF gltf{};
+            gltf.WriteGltfSceneToStream(&model, gltf_out, false, true);
+        } catch (const nlohmann::json::exception &e) {
+            std::cerr << "Failed to write JSON output to "
+                      << std::quoted(gltf_out_path.string(), '`') << ": "
+                      << e.what() << '\n';
+            return EXIT_FAILURE;
+        }
 
-    out_stream.close();
-    if (!out_stream) {
-        std::cerr << "Failed to write to output file\n";
-        return EXIT_FAILURE;
+        gltf_out.close();
+        if (!gltf_out) {
+            std::cerr << "Failed to write to glTF file "
+                      << std::quoted(gltf_out_path.string(), '`') << '\n';
+            return EXIT_FAILURE;
+        }
+        std::cerr << "Wrote " << std::quoted(gltf_out_path.string(), '`')
+                  << '\n';
     }
 }
