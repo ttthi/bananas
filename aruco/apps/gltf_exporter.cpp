@@ -31,16 +31,19 @@
 #define TINYGLTF_NO_INCLUDE_JSON
 #include <tiny_gltf.h>
 
+#include <tinyxml2.h>
+
 #include <bananas_aruco/board.h>
 #include <bananas_aruco/box_board.h>
 
 namespace {
 
-const char *const about{
-    "Generate binary glTF files from a set of box ArUco marker placements"};
+const char *const about{"Generate binary glTF and SDF files from a set of box "
+                        "ArUco marker placements"};
 const char *const keys{
     "{@inpath  | <none> | JSON file containing box descriptions }"
-    "{o        | .      | glTF output directory }"};
+    "{o        | .      | Output directory }"
+    "{sdf      |        | Whether to generate SDF files for Gazebo }"};
 
 constexpr std::size_t corners_per_marker{4};
 constexpr std::size_t floats_per_position{3};
@@ -350,6 +353,86 @@ auto produce_box_model(const cv::aruco::Dictionary &dictionary,
     return model;
 }
 
+void produce_sdf(std::ostream &out, const std::string &name,
+                 const std::filesystem::path &gltf_path,
+                 const board::BoxSettings &box) {
+    tinyxml2::XMLPrinter printer{};
+    printer.PushHeader(false, true);
+
+    printer.OpenElement("sdf");
+    // SDFormat 1.11 (Gazebo Harmonic) added support for automatically computed
+    // inertia.
+    printer.PushAttribute("version", "1.11");
+
+    printer.OpenElement("model");
+    printer.PushAttribute("name", name.c_str());
+    printer.OpenElement("link");
+    printer.PushAttribute("name", "link");
+    {
+        printer.OpenElement("pose");
+        printer.PushAttribute("degrees", true);
+        // Gazebo's glTF importer does not convert the coordinate system
+        // correctly. In the Gazebo coordinate system [1], +X is forward, +Y is
+        // left and +Z is up, so fix up our model pose to match it.
+        //
+        // [1] https://gazebosim.org/api/sim/8/frame_reference.html
+        printer.PushText("0 0 0 90 0 90");
+        printer.CloseElement(); // </pose>
+    }
+    {
+        printer.OpenElement("visual");
+        printer.PushAttribute("name", "visual");
+        {
+            printer.OpenElement("geometry");
+            printer.OpenElement("mesh");
+            printer.OpenElement("uri");
+            // NOTE: Gazebo URI file paths are relative to the directory from
+            // which `gz` is executed. Hence, the path must be given either
+            // absolutely or relative to that path for this to work.
+            printer.PushText(
+                (std::string{"file://"} + gltf_path.string()).c_str());
+            printer.CloseElement(); // </uri>
+            printer.CloseElement(); // </mesh>
+            printer.CloseElement(); // </geometry>
+        }
+        printer.CloseElement(); // </visual>
+    }
+    {
+        printer.OpenElement("collision");
+        printer.PushAttribute("name", "collision");
+        {
+            printer.OpenElement("density");
+            // TODO(vainiovano): Select a proper density.
+            printer.PushText("10.0");
+            printer.CloseElement(); // </density>
+        }
+        {
+            printer.OpenElement("geometry");
+            printer.OpenElement("box");
+            printer.OpenElement("size");
+            printer.PushText(box.size.width);
+            printer.PushText(" ");
+            printer.PushText(box.size.height);
+            printer.PushText(" ");
+            printer.PushText(box.size.depth);
+            printer.CloseElement(); // </size>
+            printer.CloseElement(); // </box>
+            printer.CloseElement(); // </geometry>
+        }
+        printer.CloseElement(); // </collision>
+    }
+    {
+        printer.OpenElement("inertial");
+        printer.PushAttribute("auto", true);
+        printer.CloseElement(); // </inertial>
+    }
+    printer.CloseElement(); // </link>
+    printer.CloseElement(); // </model>
+    printer.CloseElement(); // </sdf>
+
+    out.write(printer.CStr(), printer.CStrSize() - 1);
+}
+
 void produce_failed_open_diagnostics(std::ostream &stream,
                                      const std::filesystem::path &out_dir,
                                      const std::filesystem::path &out_path) {
@@ -373,6 +456,7 @@ auto main(int argc, char *argv[]) -> int {
 
     const auto in_path{parser.get<std::string>(0)};
     const std::filesystem::path out_dir{parser.get<std::string>("o")};
+    const auto want_sdf{parser.has("sdf")};
     if (!parser.check()) {
         parser.printErrors();
         parser.printMessage();
@@ -401,35 +485,59 @@ auto main(int argc, char *argv[]) -> int {
     }
 
     for (std::size_t i{0}; i < box_settings.size(); ++i) {
-        const std::string out_filename{std::string{"box_"} + std::to_string(i) +
-                                       std::string{".glb"}};
-        const std::filesystem::path gltf_out_path{out_dir / out_filename};
+        const std::string out_stem{std::string{"box_"} + std::to_string(i)};
+        const std::string gltf_filename{out_stem + std::string{".glb"}};
+        const std::filesystem::path gltf_out_path{out_dir / gltf_filename};
         const auto model{produce_box_model(dictionary, box_settings[i])};
 
-        std::ofstream gltf_out{gltf_out_path,
-                               std::ios_base::out | std::ios_base::binary};
-        if (!gltf_out) {
-            produce_failed_open_diagnostics(std::cerr, out_dir, gltf_out_path);
-            return EXIT_FAILURE;
-        }
+        {
+            std::ofstream gltf_out{gltf_out_path,
+                                   std::ios_base::out | std::ios_base::binary};
+            if (!gltf_out) {
+                produce_failed_open_diagnostics(std::cerr, out_dir,
+                                                gltf_out_path);
+                return EXIT_FAILURE;
+            }
 
-        try {
-            tinygltf::TinyGLTF gltf{};
-            gltf.WriteGltfSceneToStream(&model, gltf_out, false, true);
-        } catch (const nlohmann::json::exception &e) {
-            std::cerr << "Failed to write JSON output to "
-                      << std::quoted(gltf_out_path.string(), '`') << ": "
-                      << e.what() << '\n';
-            return EXIT_FAILURE;
-        }
+            try {
+                tinygltf::TinyGLTF gltf{};
+                gltf.WriteGltfSceneToStream(&model, gltf_out, false, true);
+            } catch (const nlohmann::json::exception &e) {
+                std::cerr << "Failed to write JSON output to "
+                          << std::quoted(gltf_out_path.string(), '`') << ": "
+                          << e.what() << '\n';
+                return EXIT_FAILURE;
+            }
 
-        gltf_out.close();
-        if (!gltf_out) {
-            std::cerr << "Failed to write to glTF file "
-                      << std::quoted(gltf_out_path.string(), '`') << '\n';
-            return EXIT_FAILURE;
+            gltf_out.close();
+            if (!gltf_out) {
+                std::cerr << "Failed to write to glTF file "
+                          << std::quoted(gltf_out_path.string(), '`') << '\n';
+                return EXIT_FAILURE;
+            }
+            std::cerr << "Wrote " << std::quoted(gltf_out_path.string(), '`')
+                      << '\n';
         }
-        std::cerr << "Wrote " << std::quoted(gltf_out_path.string(), '`')
-                  << '\n';
+        if (want_sdf) {
+            const std::string sdf_filename{out_stem + std::string{".sdf"}};
+            const std::filesystem::path sdf_out_path{out_dir / sdf_filename};
+            std::ofstream sdf_out{sdf_out_path, std::ios_base::out};
+            if (!sdf_out) {
+                produce_failed_open_diagnostics(std::cerr, out_dir,
+                                                sdf_out_path);
+                return EXIT_FAILURE;
+            }
+
+            produce_sdf(sdf_out, out_stem, gltf_out_path, box_settings[i]);
+
+            sdf_out.close();
+            if (!sdf_out) {
+                std::cerr << "Failed to write to SDF file "
+                          << std::quoted(sdf_out_path.string(), '`') << '\n';
+                return EXIT_FAILURE;
+            }
+            std::cerr << "Wrote " << std::quoted(sdf_out_path.string(), '`')
+                      << '\n';
+        }
     }
 }

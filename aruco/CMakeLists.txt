@@ -29,6 +29,8 @@ FetchContent_MakeAvailable(googletest)
 
 find_package(nlohmann_json 3.11.3 REQUIRED CONFIG)
 
+find_package(tinyxml2 10.0.0 REQUIRED CONFIG)
+
 find_package(Eigen3 3.4 REQUIRED CONFIG)
 
 find_package(
