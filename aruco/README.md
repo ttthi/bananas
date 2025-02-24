@@ -9,6 +9,7 @@
 - [Eigen](https://eigen.tuxfamily.org/) >= 3.4
 - [nlohmann_json](https://github.com/nlohmann/json) >= 3.11.3
 - [OGRE](https://www.ogre3d.org/) >= 1.12, but not Ogre-Next
+- [tinyxml2](https://github.com/leethomason/tinyxml2) 10.\*
 
 ### Compilation
 
