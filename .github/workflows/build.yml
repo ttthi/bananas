@@ -6,7 +6,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-24.04
     container:
-      image: mainiomano/bananas-base:0.0.1
+      image: mainiomano/bananas-base:0.0.2
     defaults:
       run:
         working-directory: aruco
@@ -16,6 +16,15 @@ jobs:
         build_type: [Debug, Release]
     steps:
     - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: |
+        apt-get update && apt-get install -y --no-install-recommends \
+          clang \
+          clang-format \
+          clang-tidy \
+          git \
+          libclang-rt-dev \
+          parallel
     - name: Configure ${{ matrix.compiler }} ${{ matrix.build_type }}
       env:
         CXXFLAGS: ${{ matrix.build_type == 'Debug' && '-Werror -fsanitize=undefined,address' || '-Werror' }}
