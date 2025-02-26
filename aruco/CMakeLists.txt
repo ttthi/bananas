@@ -19,13 +19,16 @@ FetchContent_Declare(
   tinygltf
   URL "https://github.com/syoyo/tinygltf/archive/a5e653e46cca64bbc0ecee7ede007347a94c39b0.zip"
 )
+set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE BOOL "")
+set(TINYGLTF_HEADER_ONLY ON CACHE BOOL "")
+set(TINYGLTF_INSTALL OFF CACHE BOOL "")
+set(TINYGLTF_INSTALL_VENDOR OFF CACHE BOOL "")
 FetchContent_MakeAvailable(tinygltf)
 
 FetchContent_Declare(
   googletest
   URL "https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip"
 )
-FetchContent_MakeAvailable(googletest)
 
 find_package(nlohmann_json 3.11.3 REQUIRED CONFIG)
 
@@ -51,9 +54,9 @@ add_subdirectory(apps)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   include(CTest)
-endif()
-
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
-  include(GoogleTest)
-  add_subdirectory(tests)
+  if(BUILD_TESTING)
+    FetchContent_MakeAvailable(googletest)
+    include(GoogleTest)
+    add_subdirectory(tests)
+  endif()
 endif()
