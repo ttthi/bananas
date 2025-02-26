@@ -51,6 +51,7 @@ find_package(OGRE REQUIRED COMPONENTS Bites CONFIG)
 
 add_subdirectory(src)
 add_subdirectory(apps)
+add_subdirectory(gazebo)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   include(CTest)
