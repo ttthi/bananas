@@ -32,6 +32,9 @@
             <diffuse>0.8 0.8 0.8 1</diffuse>
             <specular>0.8 0.8 0.8 1</specular>
           </material>
+          <!-- Move the plane visualization a bit down to avoid overlapping with
+               markers on the ground. -->
+          <pose>0 0 -0.0001 0 0 0</pose>
         </visual>
         <collision name="collision">
           <geometry>
@@ -50,9 +53,12 @@
       <specular>0.5 0.5 0.5</specular>
     </light>
 
-    <!-- Boxes, generated in build output -->
+    <!-- ArUco boards, generated in build output -->
     <include>
-      <uri>file://boxes/box_0.sdf</uri>
+      <uri>file://boards/board_0.sdf</uri>
+    </include>
+    <include>
+      <uri>file://boards/board_1.sdf</uri>
       <pose>0 0 1 0 0 0</pose>
     </include>
   </world>

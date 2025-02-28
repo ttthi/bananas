@@ -52,17 +52,17 @@ cmake --build build
 
 The positioner requires four inputs:
 
-- A JSON description of the boxes
+- A JSON description of the boards
 - A JSON description of the static environment
 - A JSON file containing the camera parameters
 - An input video to analyze
 
 The file formats are currently not documented. An example configuration is
 available at [Google
-Drive](https://drive.google.com/drive/folders/1tW-6yEx6MTxDuQMm00okEwCPTrKfiRjt?usp=sharing).
+Drive](https://drive.google.com/drive/folders/1jW_gUaRNqzDQmUnwXLOY9ooAgiT-EK1z?usp=drive_link).
 
 ``` sh
-./build/apps/positioner -boxes=boxes.json -env=static_environment.json -camera=camera.json video.mp4
+./build/apps/positioner -boards=boards.json -env=static_environment.json -camera=camera.json video.mp4
 ```
 
 ### Gazebo demo

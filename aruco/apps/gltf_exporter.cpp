@@ -11,6 +11,7 @@
 #include <limits>
 #include <numeric>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include <gsl/span>
@@ -35,11 +36,13 @@
 
 #include <bananas_aruco/board.h>
 #include <bananas_aruco/box_board.h>
+#include <bananas_aruco/concrete_board.h>
+#include <bananas_aruco/grid_board.h>
 
 namespace {
 
-const char *const about{"Generate binary glTF and SDF files from a set of box "
-                        "ArUco marker placements"};
+const char *const about{
+    "Generate binary glTF and SDF files from a set of ArUco marker placements"};
 const char *const keys{
     "{@inpath  | <none> | JSON file containing box descriptions }"
     "{o        | .      | Output directory }"
@@ -270,8 +273,8 @@ constexpr std::array<float,
     };
 
 /// Produce a glTF asset for the given box, including the markers.
-auto produce_box_model(const cv::aruco::Dictionary &dictionary,
-                       const board::BoxSettings &box) -> tinygltf::Model {
+auto produce_board(const cv::aruco::Dictionary &dictionary,
+                   const board::BoxSettings &box) -> tinygltf::Model {
     // 1. Add in the ArUco markers
     const cv::aruco::Board board{
         board::to_cv(dictionary, board::make_board(box))};
@@ -353,9 +356,61 @@ auto produce_box_model(const cv::aruco::Dictionary &dictionary,
     return model;
 }
 
+auto produce_board(const cv::aruco::Dictionary &dictionary,
+                   const board::GridSettings &grid) -> tinygltf::Model {
+    return produce_board_model(
+        board::to_cv(dictionary, board::make_board(grid)));
+}
+
+void produce_sdf_model_extras(tinyxml2::XMLPrinter & /*printer*/,
+                              const board::BoxSettings & /*box*/) {}
+
+void produce_sdf_model_extras(tinyxml2::XMLPrinter &printer,
+                              const board::GridSettings & /*grid*/) {
+    printer.OpenElement("static");
+    printer.PushText("true");
+    printer.CloseElement(); // </static>
+}
+
+void produce_sdf_link_extras(tinyxml2::XMLPrinter &printer,
+                             const board::BoxSettings &box) {
+    {
+        printer.OpenElement("collision");
+        printer.PushAttribute("name", "collision");
+        {
+            printer.OpenElement("density");
+            // TODO(vainiovano): Select a proper density.
+            printer.PushText("10.0");
+            printer.CloseElement(); // </density>
+        }
+        {
+            printer.OpenElement("geometry");
+            printer.OpenElement("box");
+            printer.OpenElement("size");
+            printer.PushText(box.size.width);
+            printer.PushText(" ");
+            printer.PushText(box.size.height);
+            printer.PushText(" ");
+            printer.PushText(box.size.depth);
+            printer.CloseElement(); // </size>
+            printer.CloseElement(); // </box>
+            printer.CloseElement(); // </geometry>
+        }
+        printer.CloseElement(); // </collision>
+    }
+    {
+        printer.OpenElement("inertial");
+        printer.PushAttribute("auto", true);
+        printer.CloseElement(); // </inertial>
+    }
+}
+
+void produce_sdf_link_extras(tinyxml2::XMLPrinter & /*printer*/,
+                             const board::GridSettings & /*grid*/) {}
+
 void produce_sdf(std::ostream &out, const std::string &name,
                  const std::filesystem::path &gltf_path,
-                 const board::BoxSettings &box) {
+                 const board::ConcreteBoard &board) {
     tinyxml2::XMLPrinter printer{};
     printer.PushHeader(false, true);
 
@@ -366,6 +421,11 @@ void produce_sdf(std::ostream &out, const std::string &name,
 
     printer.OpenElement("model");
     printer.PushAttribute("name", name.c_str());
+    std::visit(
+        [&printer](const auto &board) {
+            produce_sdf_model_extras(printer, board);
+        },
+        board);
     printer.OpenElement("link");
     printer.PushAttribute("name", "link");
     {
@@ -397,35 +457,11 @@ void produce_sdf(std::ostream &out, const std::string &name,
         }
         printer.CloseElement(); // </visual>
     }
-    {
-        printer.OpenElement("collision");
-        printer.PushAttribute("name", "collision");
-        {
-            printer.OpenElement("density");
-            // TODO(vainiovano): Select a proper density.
-            printer.PushText("10.0");
-            printer.CloseElement(); // </density>
-        }
-        {
-            printer.OpenElement("geometry");
-            printer.OpenElement("box");
-            printer.OpenElement("size");
-            printer.PushText(box.size.width);
-            printer.PushText(" ");
-            printer.PushText(box.size.height);
-            printer.PushText(" ");
-            printer.PushText(box.size.depth);
-            printer.CloseElement(); // </size>
-            printer.CloseElement(); // </box>
-            printer.CloseElement(); // </geometry>
-        }
-        printer.CloseElement(); // </collision>
-    }
-    {
-        printer.OpenElement("inertial");
-        printer.PushAttribute("auto", true);
-        printer.CloseElement(); // </inertial>
-    }
+    std::visit(
+        [&printer](const auto &board) {
+            produce_sdf_link_extras(printer, board);
+        },
+        board);
     printer.CloseElement(); // </link>
     printer.CloseElement(); // </model>
     printer.CloseElement(); // </sdf>
@@ -466,7 +502,7 @@ auto main(int argc, char *argv[]) -> int {
     const cv::aruco::Dictionary dictionary{cv::aruco::getPredefinedDictionary(
         cv::aruco::PredefinedDictionaryType::DICT_5X5_100)};
 
-    std::vector<board::BoxSettings> box_settings;
+    std::vector<board::ConcreteBoard> board_settings;
     {
         std::ifstream in_stream{in_path};
         if (!in_stream) {
@@ -476,19 +512,23 @@ auto main(int argc, char *argv[]) -> int {
 
         try {
             const auto json = nlohmann::json::parse(in_stream);
-            json.get_to(box_settings);
+            json.get_to(board_settings);
         } catch (const nlohmann::json::exception &e) {
-            std::cerr << "Failed to parse box description file: " << e.what()
+            std::cerr << "Failed to parse board description file: " << e.what()
                       << '\n';
             return EXIT_FAILURE;
         }
     }
 
-    for (std::size_t i{0}; i < box_settings.size(); ++i) {
-        const std::string out_stem{std::string{"box_"} + std::to_string(i)};
+    for (std::size_t i{0}; i < board_settings.size(); ++i) {
+        const std::string out_stem{std::string{"board_"} + std::to_string(i)};
         const std::string gltf_filename{out_stem + std::string{".glb"}};
         const std::filesystem::path gltf_out_path{out_dir / gltf_filename};
-        const auto model{produce_box_model(dictionary, box_settings[i])};
+        const auto model{std::visit(
+            [&dictionary](const auto &board) {
+                return produce_board(dictionary, board);
+            },
+            board_settings[i])};
 
         {
             std::ofstream gltf_out{gltf_out_path,
@@ -528,7 +568,7 @@ auto main(int argc, char *argv[]) -> int {
                 return EXIT_FAILURE;
             }
 
-            produce_sdf(sdf_out, out_stem, gltf_out_path, box_settings[i]);
+            produce_sdf(sdf_out, out_stem, gltf_out_path, board_settings[i]);
 
             sdf_out.close();
             if (!sdf_out) {
