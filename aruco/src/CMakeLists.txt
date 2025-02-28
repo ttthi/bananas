@@ -4,11 +4,13 @@ add_library(
   board.cpp
   box_board.cpp
   grid_board.cpp
+  concrete_board.cpp
   world.cpp
   "${PROJECT_SOURCE_DIR}/include/bananas_aruco/affine_rotation.h"
   "${PROJECT_SOURCE_DIR}/include/bananas_aruco/board.h"
   "${PROJECT_SOURCE_DIR}/include/bananas_aruco/box_board.h"
   "${PROJECT_SOURCE_DIR}/include/bananas_aruco/grid_board.h"
+  "${PROJECT_SOURCE_DIR}/include/bananas_aruco/concrete_board.h"
   "${PROJECT_SOURCE_DIR}/include/bananas_aruco/world.h")
 
 target_include_directories(aruco_detector

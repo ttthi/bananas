@@ -1,19 +1,18 @@
 #include <bananas_aruco/world.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <iterator>
 #include <optional>
-#include <string>
-#include <unordered_map>
 #include <utility>
-#include <variant>
 #include <vector>
 
-#include <gsl/span>
+#include <gsl/assert>
 
-#include <nlohmann/json_fwd.hpp>
+#include <nlohmann/json.hpp>
 
 #include <opencv2/calib3d.hpp>
+#include <opencv2/core/hal/interface.h>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/matx.hpp>
 #include <opencv2/core/types.hpp>
@@ -27,111 +26,80 @@
 
 namespace {
 
-auto to_board(const cv::aruco::Dictionary &dictionary,
-              gsl::span<const world::StaticEnvironment::PlacedObject> objects)
-    -> cv::aruco::Board {
-    std::vector<std::vector<cv::Point3f>> obj_points{};
-    std::vector<int> ids{};
-
-    for (const auto &object : objects) {
-        const board::Board board{std::visit(
-            [](const auto &config) { return board::make_board(config); },
-            object.object)};
-
-        obj_points.reserve(obj_points.size() + board.obj_points.size());
-        std::transform(board.obj_points.cbegin(), board.obj_points.cend(),
-                       std::back_inserter(obj_points),
-                       [&object](const std::vector<cv::Point3f> &points) {
-                           std::vector<cv::Point3f> res(4);
-                           std::transform(
-                               points.cbegin(), points.cend(), res.begin(),
-                               [&object](cv::Point3f point) {
-                                   return object.object_to_world * point;
-                               });
-                           return res;
-                       });
-
-        ids.insert(ids.end(), board.marker_ids.cbegin(),
-                   board.marker_ids.cend());
-    }
-    return {obj_points, dictionary, ids};
-}
+struct PlacementJson {
+    std::uint32_t id{};
+    affine_rotation::AffineRotation board_to_world{};
+};
+// Mark to_json as potentially unused to make clang happy. This is ugly, but it
+// works.
+[[maybe_unused]] NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PlacementJson, id,
+                                                    board_to_world);
 
 } // namespace
 
 namespace world {
 
-StaticEnvironment::StaticEnvironment(
-    const cv::aruco::Dictionary &dictionary,
-    gsl::span<const StaticEnvironment::PlacedObject> objects)
-    : board_{to_board(dictionary, objects)},
-      objects_{objects.begin(), objects.end()} {};
+void from_json(const nlohmann::json &j, BoardPlacement &placement) {
+    const auto placement_vector{j.get<std::vector<PlacementJson>>()};
 
-void from_json(const nlohmann::json &j,
-               StaticEnvironment::PlacedObject &object) {
-    const auto type{j.at("type").get<std::string>()};
-    const auto object_to_world{
-        j.at("object_to_world").get<affine_rotation::AffineRotation>()};
-
-    if (type == "box") {
-        const auto box{j.at("settings").get<board::BoxSettings>()};
-        object = {box, object_to_world};
-    } else if (type == "grid") {
-        const auto grid{j.at("settings").get<board::GridSettings>()};
-        object = {grid, object_to_world};
-    } else {
-        throw std::runtime_error{"Bad static environment member type " + type};
+    placement = {};
+    placement.reserve(placement_vector.size());
+    for (const auto &board : placement_vector) {
+        placement.emplace(board.id, board.board_to_world);
     }
 }
 
-void from_json(const nlohmann::json &j, StaticEnvironment &environment) {
-    const int dictionary_id{j.at("dictionary_id").get<int>()};
-
-    std::vector<StaticEnvironment::PlacedObject> placed_objects{};
-    j.at("objects").get_to(placed_objects);
-
-    const auto &dictionary{cv::aruco::getPredefinedDictionary(dictionary_id)};
-    environment = {dictionary, placed_objects};
-}
-
 World::World(cv::Mat camera_matrix, cv::Mat distortion_coeffs,
-             const cv::aruco::Dictionary &dictionary,
-             const StaticEnvironment &static_environment)
+             const cv::aruco::Dictionary &dictionary)
     : camera_matrix_{std::move(camera_matrix)},
       distortion_coeffs_{std::move(distortion_coeffs)},
       dictionary_{&dictionary}, detector_{dictionary, {}},
-      static_environment_{&static_environment} {}
+      static_environment_{cv::Mat(0, 0, CV_32FC3), dictionary, {}} {}
 
-auto World::addBoard(cv::aruco::Board board) -> DynamicBoardId {
-    dynamic_boards_.emplace(next_dynamic_board_id_, std::move(board));
-    return next_dynamic_board_id_++;
+auto World::addBoard(cv::aruco::Board &&board) -> BoardId {
+    all_boards_.push_back(std::move(board));
+    return static_cast<std::uint32_t>(all_boards_.size()) - 1;
 }
 
-auto World::addBox(const board::BoxSettings &settings) -> DynamicBoardId {
-    return World::addBoard(
-        board::to_cv(*dictionary_, board::make_board(settings)));
+auto World::addBoard(const board::BoxSettings &settings) -> BoardId {
+    return addBoard(board::to_cv(*dictionary_, board::make_board(settings)));
+}
+
+auto World::addBoard(const board::GridSettings &settings) -> BoardId {
+    return addBoard(board::to_cv(*dictionary_, board::make_board(settings)));
+}
+
+void World::makeStatic(BoardId id,
+                       const affine_rotation::AffineRotation &board_to_world) {
+    Expects(id < all_boards_.size());
+    static_board_placements_.emplace(id, board_to_world);
+    // TODO(vainiovano): Avoid regenerating the environment from scratch every
+    // time?
+    recomputeStaticEnvironment();
 }
 
 auto World::fit(const cv::Mat &image) const -> FitResult {
     std::vector<std::vector<cv::Point2f>> corners{};
     std::vector<std::vector<cv::Point2f>> rejected{};
     std::vector<int> ids{};
-    const auto &static_board{static_environment_->getBoard()};
-
     detector_.detectMarkers(image, corners, ids, rejected);
-
-    detector_.refineDetectedMarkers(image, static_board, corners, ids, rejected,
-                                    camera_matrix_, distortion_coeffs_);
-    for (const auto &board : dynamic_boards_) {
-        detector_.refineDetectedMarkers(image, board.second, corners, ids,
-                                        rejected, camera_matrix_,
+    detector_.refineDetectedMarkers(image, static_environment_, corners, ids,
+                                    rejected, camera_matrix_,
+                                    distortion_coeffs_);
+    for (BoardId board_id{0}; board_id < all_boards_.size(); ++board_id) {
+        if (static_board_placements_.find(board_id) !=
+            static_board_placements_.cend()) {
+            continue;
+        }
+        detector_.refineDetectedMarkers(image, all_boards_[board_id], corners,
+                                        ids, rejected, camera_matrix_,
                                         distortion_coeffs_);
     }
 
     std::optional<affine_rotation::AffineRotation> camera_to_world{};
-    std::unordered_map<DynamicBoardId, affine_rotation::AffineRotation>
-        fit_boards{};
-    const auto static_environment_fit{fitBoard(corners, ids, static_board)};
+    BoardPlacement dynamic_board_placements{};
+    const auto static_environment_fit{
+        fitBoard(corners, ids, static_environment_)};
     if (static_environment_fit) {
         camera_to_world = static_environment_fit->inverse();
         // Help clang-tidy 18's bugprone-unchecked-optional-access lint. Newer
@@ -139,17 +107,22 @@ auto World::fit(const cv::Mat &image) const -> FitResult {
         const auto &camera_to_world_value{*camera_to_world};
         // TODO(vainiovano): Allow producing results even if the exact camera
         // location is not known.
-        for (const auto &board : dynamic_boards_) {
-            const auto board_to_camera{fitBoard(corners, ids, board.second)};
+        for (BoardId board_id{0}; board_id < all_boards_.size(); ++board_id) {
+            if (static_board_placements_.find(board_id) !=
+                static_board_placements_.cend()) {
+                continue;
+            }
+            const auto board_to_camera{
+                fitBoard(corners, ids, all_boards_[board_id])};
             if (board_to_camera) {
-                fit_boards.emplace(board.first,
-                                   camera_to_world_value * *board_to_camera);
+                dynamic_board_placements.emplace(
+                    board_id, camera_to_world_value * *board_to_camera);
             }
         }
     }
 
     return {std::move(corners), std::move(ids), std::move(camera_to_world),
-            std::move(fit_boards)};
+            std::move(dynamic_board_placements)};
 }
 
 auto World::fitBoard(const std::vector<std::vector<cv::Point2f>> &corners,
@@ -173,6 +146,32 @@ auto World::fitBoard(const std::vector<std::vector<cv::Point2f>> &corners,
         return {};
     }
     return affine_rotation::from_cv(rvec, tvec);
+}
+
+void World::recomputeStaticEnvironment() {
+    std::vector<std::vector<cv::Point3f>> obj_points{};
+    std::vector<int> ids{};
+
+    for (const auto &[id, placement] : static_board_placements_) {
+        const auto board{all_boards_[id]};
+        const auto &board_to_world{placement};
+
+        obj_points.reserve(obj_points.size() + board.getObjPoints().size());
+        std::transform(
+            board.getObjPoints().cbegin(), board.getObjPoints().cend(),
+            std::back_inserter(obj_points),
+            [&board_to_world](const std::vector<cv::Point3f> &points) {
+                std::vector<cv::Point3f> res(4);
+                std::transform(points.cbegin(), points.cend(), res.begin(),
+                               [&board_to_world](cv::Point3f point) {
+                                   return board_to_world * point;
+                               });
+                return res;
+            });
+
+        ids.insert(ids.end(), board.getIds().cbegin(), board.getIds().cend());
+    }
+    static_environment_ = {obj_points, *dictionary_, ids};
 }
 
 } // namespace world
