@@ -1,12 +1,10 @@
 #include <bananas_aruco/visualization/visualizer.h>
 
-#include <variant>
-
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <gsl/assert>
 #include <gsl/pointers>
-#include <gsl/span>
 
 #include <OgreApplicationContext.h>
 #include <OgreCamera.h>
@@ -38,53 +36,6 @@ void set_transform(Ogre::SceneNode *node,
     node->setOrientation(Ogre::Quaternion{rotation.w(), rotation.x(),
                                           rotation.y(), rotation.z()});
 }
-
-/// An std::variant visitor for creating a node for an object.
-class CreateObjectNodeVisitor {
-  public:
-    CreateObjectNodeVisitor(gsl::not_null<Ogre::SceneManager *> scene_manager,
-                            gsl::not_null<Ogre::SceneNode *> parent)
-        : scene_manager_{scene_manager}, parent_node_{parent} {}
-
-    auto operator()(const board::BoxSettings &box_settings) const
-        -> gsl::not_null<Ogre::SceneNode *> {
-        const gsl::not_null<Ogre::Entity *> cube{
-            scene_manager_->createEntity(Ogre::SceneManager::PT_CUBE)};
-        const gsl::not_null<Ogre::SceneNode *> node{
-            parent_node_->createChildSceneNode()};
-
-        node->setScale({0.01F * box_settings.size.width,
-                        0.01F * box_settings.size.height,
-                        0.01F * box_settings.size.depth});
-        node->attachObject(cube);
-
-        return node;
-    }
-
-    auto operator()(const board::GridSettings &grid_settings) const
-        -> gsl::not_null<Ogre::SceneNode *> {
-        const gsl::not_null<Ogre::Entity *> plane{
-            scene_manager_->createEntity(Ogre::SceneManager::PT_PLANE)};
-        const gsl::not_null<Ogre::SceneNode *> node{
-            parent_node_->createChildSceneNode()};
-
-        // Make the plane point up (+Y direction) by default.
-        const gsl::not_null<Ogre::SceneNode *> child_node{
-            node->createChildSceneNode(
-                Ogre::Vector3{0.0F, 0.0F, 0.0F},
-                Ogre::Quaternion{Ogre::Degree{270}, Ogre::Vector3{1, 0, 0}})};
-        child_node->attachObject(plane);
-
-        node->setScale(0.005F * board::grid_width(grid_settings),
-                       0.005F * board::grid_height(grid_settings), 1.0F);
-
-        return node;
-    }
-
-  private:
-    gsl::not_null<Ogre::SceneManager *> scene_manager_;
-    gsl::not_null<Ogre::SceneNode *> parent_node_;
-};
 
 } // namespace
 
@@ -157,40 +108,64 @@ void Visualizer::update(const world::FitResult &fit) {
     if (fit.camera_to_world) {
         set_transform(camera_visualization_, *fit.camera_to_world);
     }
-    for (const auto &box : dynamic_environment_) {
-        const auto box_fit{fit.dynamic_boards_to_world.find(box.first)};
-        const bool has_fit{box_fit != fit.dynamic_boards_to_world.cend()};
-        box.second->setVisible(has_fit);
-        if (has_fit) {
-            set_transform(box.second, box_fit->second);
+    update(fit.dynamic_board_placements);
+}
+
+void Visualizer::update(const world::BoardPlacement &board_placement) {
+    for (const auto &[id, node] : objects_) {
+        const auto object_placement{board_placement.find(id)};
+        const bool has_placement{object_placement != board_placement.cend()};
+        if (forced_visible_.find(id) == forced_visible_.end()) {
+            node->setVisible(has_placement);
+        }
+        if (has_placement) {
+            set_transform(node, object_placement->second);
         }
     }
 }
 
 void Visualizer::refresh() { context_.getRoot()->renderOneFrame(); }
 
-void Visualizer::updateStaticEnvironment(
-    gsl::span<const world::StaticEnvironment::PlacedObject> objects) {
-    static_environment_->removeAndDestroyAllChildren();
-    const CreateObjectNodeVisitor visitor{scene_manager_, static_environment_};
-    for (const auto &object : objects) {
-        const auto node{std::visit(visitor, object.object)};
-        set_transform(node, object.object_to_world);
-    }
-}
-
-void Visualizer::addBox(world::DynamicBoardId id, const board::BoxSize &size) {
+void Visualizer::addObject(world::BoardId id, const board::BoxSettings &box) {
     const gsl::not_null<Ogre::Entity *> cube{
         scene_manager_->createEntity(Ogre::SceneManager::PT_CUBE)};
     const gsl::not_null<Ogre::SceneNode *> node{
         scene_manager_->getRootSceneNode()->createChildSceneNode()};
 
-    node->setScale(
-        {0.01F * size.width, 0.01F * size.height, 0.01F * size.depth});
+    node->setScale({0.01F * box.size.width, 0.01F * box.size.height,
+                    0.01F * box.size.depth});
     node->attachObject(cube);
     node->setVisible(false);
 
-    dynamic_environment_.emplace(id, node);
+    objects_.emplace(id, node);
+}
+
+void Visualizer::addObject(world::BoardId id, const board::GridSettings &grid) {
+    const gsl::not_null<Ogre::Entity *> plane{
+        scene_manager_->createEntity(Ogre::SceneManager::PT_PLANE)};
+    const gsl::not_null<Ogre::SceneNode *> node{
+        scene_manager_->getRootSceneNode()->createChildSceneNode()};
+
+    // Make the plane point up (+Y direction) by default.
+    const gsl::not_null<Ogre::SceneNode *> child_node{
+        node->createChildSceneNode(
+            Ogre::Vector3{0.0F, 0.0F, 0.0F},
+            Ogre::Quaternion{Ogre::Degree{270}, Ogre::Vector3{1, 0, 0}})};
+    child_node->attachObject(plane);
+    node->setVisible(false);
+
+    node->setScale(0.005F * board::grid_width(grid),
+                   0.005F * board::grid_height(grid), 1.0F);
+
+    objects_.emplace(id, node);
+}
+
+void Visualizer::forceVisible(world::BoardId id) {
+    const auto location{objects_.find(id)};
+    Expects(location != objects_.cend());
+
+    location->second->setVisible(true);
+    forced_visible_.insert(id);
 }
 
 } // namespace visualizer

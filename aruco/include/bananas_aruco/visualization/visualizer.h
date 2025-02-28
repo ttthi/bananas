@@ -1,11 +1,13 @@
 #ifndef VISUALIZER_H_
 #define VISUALIZER_H_
 
+#include <unordered_map>
+#include <unordered_set>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
 #include <gsl/pointers>
-#include <gsl/span>
 
 #include <OgreApplicationContext.h>
 #include <OgreCameraMan.h>
@@ -14,9 +16,9 @@
 #include <OgreRoot.h>
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
-#include <unordered_map>
 
 #include <bananas_aruco/box_board.h>
+#include <bananas_aruco/grid_board.h>
 #include <bananas_aruco/world.h>
 
 namespace visualizer {
@@ -44,13 +46,14 @@ class Visualizer {
     Visualizer();
 
     void update(const world::FitResult &fit);
+    void update(const world::BoardPlacement &board_placement);
 
     /// Render a new frame.
     void refresh();
 
-    void updateStaticEnvironment(
-        gsl::span<const world::StaticEnvironment::PlacedObject> objects);
-    void addBox(world::DynamicBoardId id, const board::BoxSize &size);
+    void addObject(world::BoardId id, const board::BoxSettings &box);
+    void addObject(world::BoardId id, const board::GridSettings &grid);
+    void forceVisible(world::BoardId id);
 
   private:
     InitializedContext context_{};
@@ -61,8 +64,9 @@ class Visualizer {
     KeyHandler key_handler_;
     gsl::not_null<Ogre::SceneNode *> static_environment_;
     gsl::not_null<Ogre::SceneNode *> camera_visualization_;
-    std::unordered_map<world::DynamicBoardId, Ogre::SceneNode *>
-        dynamic_environment_{};
+    std::unordered_map<world::BoardId, gsl::not_null<Ogre::SceneNode *>>
+        objects_{};
+    std::unordered_set<world::BoardId> forced_visible_{};
 };
 
 } // namespace visualizer
