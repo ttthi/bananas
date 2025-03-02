@@ -21,3 +21,4 @@ CheckOptions:
     misc-include-cleaner.IgnoreHeaders: 'Eigen/.*;nlohmann/.*'
     # We shouldn't be hitting this exception much.
     bugprone-exception-escape.IgnoredExceptions: 'bad_variant_access'
+    readability-function-cognitive-complexity.IgnoreMacros: true

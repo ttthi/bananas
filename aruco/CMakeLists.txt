@@ -57,6 +57,16 @@ find_package(
 
 find_package(OGRE REQUIRED COMPONENTS Bites CONFIG)
 
+option(WITH_ROS2 "Enable ROS2 support" OFF)
+if(WITH_ROS2)
+  find_package(ament_cmake CONFIG REQUIRED)
+  find_package(rclcpp CONFIG REQUIRED)
+  find_package(std_msgs CONFIG REQUIRED)
+  find_package(sensor_msgs CONFIG REQUIRED)
+  find_package(cv_bridge CONFIG REQUIRED)
+  find_package(image_transport CONFIG REQUIRED)
+endif()
+
 add_subdirectory(src)
 add_subdirectory(apps)
 add_subdirectory(gazebo)
