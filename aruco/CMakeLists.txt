@@ -19,10 +19,18 @@ FetchContent_Declare(
   tinygltf
   URL "https://github.com/syoyo/tinygltf/archive/a5e653e46cca64bbc0ecee7ede007347a94c39b0.zip"
 )
-set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE BOOL "")
-set(TINYGLTF_HEADER_ONLY ON CACHE BOOL "")
-set(TINYGLTF_INSTALL OFF CACHE BOOL "")
-set(TINYGLTF_INSTALL_VENDOR OFF CACHE BOOL "")
+set(TINYGLTF_BUILD_LOADER_EXAMPLE
+    OFF
+    CACHE BOOL "")
+set(TINYGLTF_HEADER_ONLY
+    ON
+    CACHE BOOL "")
+set(TINYGLTF_INSTALL
+    OFF
+    CACHE BOOL "")
+set(TINYGLTF_INSTALL_VENDOR
+    OFF
+    CACHE BOOL "")
 FetchContent_MakeAvailable(tinygltf)
 
 FetchContent_Declare(
