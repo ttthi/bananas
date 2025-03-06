@@ -24,24 +24,6 @@
 
 namespace visualizer {
 
-class KeyHandler : public OgreBites::InputListener {
-  public:
-    explicit KeyHandler(OgreBites::CameraMan *camera_manager);
-
-    auto mousePressed(const OgreBites::MouseButtonEvent &evt) -> bool override;
-    auto mouseReleased(const OgreBites::MouseButtonEvent &evt) -> bool override;
-
-  private:
-    OgreBites::CameraMan *camera_manager_;
-};
-
-/// A wrapper that initializes an OgreBites::ApplicationContext and calls
-/// Ogre::ApplicationContextBase::initApp() for it.
-class InitializedContext : public OgreBites::ApplicationContext {
-  public:
-    InitializedContext();
-};
-
 class Visualizer {
   public:
     Visualizer();
@@ -58,6 +40,26 @@ class Visualizer {
     void forceVisible(world::BoardId id);
 
   private:
+    class KeyHandler : public OgreBites::InputListener {
+      public:
+        explicit KeyHandler(OgreBites::CameraMan *camera_manager);
+
+        auto
+        mousePressed(const OgreBites::MouseButtonEvent &evt) -> bool override;
+        auto
+        mouseReleased(const OgreBites::MouseButtonEvent &evt) -> bool override;
+
+      private:
+        OgreBites::CameraMan *camera_manager_;
+    };
+
+    /// A wrapper that initializes an OgreBites::ApplicationContext and calls
+    /// Ogre::ApplicationContextBase::initApp() for it.
+    class InitializedContext : public OgreBites::ApplicationContext {
+      public:
+        InitializedContext();
+    };
+
     InitializedContext context_{};
     gsl::not_null<Ogre::Root *> root_;
     gsl::not_null<Ogre::SceneManager *> scene_manager_;
