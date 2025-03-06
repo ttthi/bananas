@@ -17,6 +17,7 @@
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
 
+#include <bananas_aruco/affine_rotation.h>
 #include <bananas_aruco/box_board.h>
 #include <bananas_aruco/grid_board.h>
 #include <bananas_aruco/world.h>
@@ -45,8 +46,9 @@ class Visualizer {
   public:
     Visualizer();
 
+    void update(world::BoardId id,
+                const affine_rotation::AffineRotation &placement);
     void update(const world::FitResult &fit);
-    void update(const world::BoardPlacement &board_placement);
 
     /// Render a new frame.
     void refresh();

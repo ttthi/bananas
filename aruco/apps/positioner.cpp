@@ -245,18 +245,19 @@ auto main(int argc, char *argv[]) -> int {
     visualizer::Visualizer visualizer{};
     for (const auto &board : boards) {
         std::visit(
-            [&world, &visualizer](const auto &board) {
-                const auto board_id{world.addBoard(board)};
-                visualizer.addObject(board_id, board);
+            [&world, &visualizer](const auto &settings) {
+                const auto board_id{
+                    world.addBoard(board::make_board(settings))};
+                visualizer.addObject(board_id, settings);
             },
             board);
     }
 
     for (const auto &[id, placement] : static_environment) {
         world.makeStatic(id, placement);
+        visualizer.update(id, placement);
         visualizer.forceVisible(id);
     }
-    visualizer.update(world.getStaticEnvironment());
 
 #ifdef ENABLE_ROS2
     const auto node{std::make_shared<RosPositioner>(world, visualizer)};

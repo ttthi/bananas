@@ -103,18 +103,20 @@ Visualizer::Visualizer()
     camera_visualization_->setVisible(false);
 }
 
+void Visualizer::update(world::BoardId id,
+                        const affine_rotation::AffineRotation &placement) {
+    set_transform(objects_.at(id), placement);
+}
+
 void Visualizer::update(const world::FitResult &fit) {
     camera_visualization_->setVisible(fit.camera_to_world.has_value());
     if (fit.camera_to_world) {
         set_transform(camera_visualization_, *fit.camera_to_world);
     }
-    update(fit.dynamic_board_placements);
-}
-
-void Visualizer::update(const world::BoardPlacement &board_placement) {
     for (const auto &[id, node] : objects_) {
-        const auto object_placement{board_placement.find(id)};
-        const bool has_placement{object_placement != board_placement.cend()};
+        const auto object_placement{fit.dynamic_board_placements.find(id)};
+        const bool has_placement{object_placement !=
+                                 fit.dynamic_board_placements.cend()};
         if (forced_visible_.find(id) == forced_visible_.end()) {
             node->setVisible(has_placement);
         }
