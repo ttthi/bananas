@@ -27,11 +27,18 @@ using BoardPlacement =
 
 void from_json(const nlohmann::json &j, BoardPlacement &placement);
 
+struct UncertainPose {
+    float reprojection_error{};
+    affine_rotation::AffineRotation placement{};
+};
+
+using UncertainPlacement = std::unordered_map<BoardId, UncertainPose>;
+
 struct FitResult {
     std::vector<std::vector<cv::Point2f>> corners;
     std::vector<int> ids;
-    std::optional<affine_rotation::AffineRotation> camera_to_world;
-    BoardPlacement dynamic_board_placements;
+    std::optional<UncertainPose> camera_to_world;
+    UncertainPlacement dynamic_board_placements;
 };
 
 class World {
@@ -52,9 +59,13 @@ class World {
     [[nodiscard]]
     auto fitBoard(const std::vector<std::vector<cv::Point2f>> &corners,
                   const std::vector<int> &ids, const cv::aruco::Board &board)
-        const -> std::optional<affine_rotation::AffineRotation>;
+        const -> std::optional<UncertainPose>;
 
     void recomputeStaticEnvironment();
+
+    // The reprojection error would be pretty misleading for a single marker
+    // since the solver can just find a placement that just happens to fit.
+    static constexpr int min_marker_count{2};
 
     cv::Mat camera_matrix_;
     cv::Mat distortion_coeffs_;

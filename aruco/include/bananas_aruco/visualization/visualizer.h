@@ -60,6 +60,11 @@ class Visualizer {
         InitializedContext();
     };
 
+    struct ColoredObject {
+        gsl::not_null<Ogre::SceneNode *> node;
+        Ogre::MaterialPtr material;
+    };
+
     InitializedContext context_{};
     gsl::not_null<Ogre::Root *> root_;
     gsl::not_null<Ogre::SceneManager *> scene_manager_;
@@ -67,9 +72,8 @@ class Visualizer {
     OgreBites::CameraMan camera_manager_;
     KeyHandler key_handler_;
     gsl::not_null<Ogre::SceneNode *> static_environment_;
-    gsl::not_null<Ogre::SceneNode *> camera_visualization_;
-    std::unordered_map<world::BoardId, gsl::not_null<Ogre::SceneNode *>>
-        objects_{};
+    ColoredObject camera_visualization_;
+    std::unordered_map<world::BoardId, ColoredObject> objects_{};
     std::unordered_set<world::BoardId> forced_visible_{};
 };
 

@@ -86,15 +86,16 @@ auto World::fit(const cv::Mat &image) const -> FitResult {
                                         distortion_coeffs_);
     }
 
-    std::optional<affine_rotation::AffineRotation> camera_to_world{};
-    BoardPlacement dynamic_board_placements{};
+    std::optional<UncertainPose> camera_to_world{};
+    UncertainPlacement dynamic_board_placements{};
     const auto static_environment_fit{
         fitBoard(corners, ids, static_environment_)};
     if (static_environment_fit) {
-        camera_to_world = static_environment_fit->inverse();
+        camera_to_world = {static_environment_fit->reprojection_error,
+                           static_environment_fit->placement.inverse()};
         // Help clang-tidy 18's bugprone-unchecked-optional-access lint. Newer
         // versions are smarter.
-        const auto &camera_to_world_value{*camera_to_world};
+        const auto &camera_to_world_placement{camera_to_world->placement};
         // TODO(vainiovano): Allow producing results even if the exact camera
         // location is not known.
         for (BoardId board_id{0}; board_id < all_boards_.size(); ++board_id) {
@@ -105,8 +106,12 @@ auto World::fit(const cv::Mat &image) const -> FitResult {
             const auto board_to_camera{
                 fitBoard(corners, ids, all_boards_[board_id])};
             if (board_to_camera) {
+                // TODO(vainiovano): Combine the reprojection error with that of
+                // the camera location?
                 dynamic_board_placements.emplace(
-                    board_id, camera_to_world_value * *board_to_camera);
+                    board_id, UncertainPose{board_to_camera->reprojection_error,
+                                            camera_to_world_placement *
+                                                board_to_camera->placement});
             }
         }
     }
@@ -117,7 +122,7 @@ auto World::fit(const cv::Mat &image) const -> FitResult {
 
 auto World::fitBoard(const std::vector<std::vector<cv::Point2f>> &corners,
                      const std::vector<int> &ids, const cv::aruco::Board &board)
-    const -> std::optional<affine_rotation::AffineRotation> {
+    const -> std::optional<UncertainPose> {
     if (ids.empty()) {
         return {};
     }
@@ -125,17 +130,22 @@ auto World::fitBoard(const std::vector<std::vector<cv::Point2f>> &corners,
     cv::Mat object_points;
     cv::Mat image_points;
     board.matchImagePoints(corners, ids, object_points, image_points);
-    if (object_points.empty()) {
+    if (object_points.rows / 4 < min_marker_count) {
         return {};
     }
 
-    cv::Vec3f rvec;
-    cv::Vec3f tvec;
-    if (!cv::solvePnP(object_points, image_points, camera_matrix_,
-                      distortion_coeffs_, rvec, tvec)) {
+    std::vector<cv::Vec3f> rvecs;
+    std::vector<cv::Vec3f> tvecs;
+    std::vector<float> reprojection_errors;
+    const auto num_solutions{cv::solvePnPGeneric(
+        object_points, image_points, camera_matrix_, distortion_coeffs_, rvecs,
+        tvecs, false, cv::SOLVEPNP_ITERATIVE, cv::noArray(), cv::noArray(),
+        reprojection_errors)};
+    if (num_solutions == 0) {
         return {};
     }
-    return affine_rotation::from_cv(rvec, tvec);
+    return {
+        {reprojection_errors[0], affine_rotation::from_cv(rvecs[0], tvecs[0])}};
 }
 
 void World::recomputeStaticEnvironment() {
