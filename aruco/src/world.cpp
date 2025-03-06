@@ -21,8 +21,6 @@
 
 #include <bananas_aruco/affine_rotation.h>
 #include <bananas_aruco/board.h>
-#include <bananas_aruco/box_board.h>
-#include <bananas_aruco/grid_board.h>
 
 namespace {
 
@@ -56,17 +54,9 @@ World::World(cv::Mat camera_matrix, cv::Mat distortion_coeffs,
       dictionary_{&dictionary}, detector_{dictionary, {}},
       static_environment_{cv::Mat(0, 0, CV_32FC3), dictionary, {}} {}
 
-auto World::addBoard(cv::aruco::Board &&board) -> BoardId {
-    all_boards_.push_back(std::move(board));
+auto World::addBoard(const board::Board &board) -> BoardId {
+    all_boards_.push_back(board::to_cv(*dictionary_, board));
     return static_cast<std::uint32_t>(all_boards_.size()) - 1;
-}
-
-auto World::addBoard(const board::BoxSettings &settings) -> BoardId {
-    return addBoard(board::to_cv(*dictionary_, board::make_board(settings)));
-}
-
-auto World::addBoard(const board::GridSettings &settings) -> BoardId {
-    return addBoard(board::to_cv(*dictionary_, board::make_board(settings)));
 }
 
 void World::makeStatic(BoardId id,

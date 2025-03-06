@@ -17,8 +17,7 @@
 #include <opencv2/objdetect/aruco_dictionary.hpp>
 
 #include <bananas_aruco/affine_rotation.h>
-#include <bananas_aruco/box_board.h>
-#include <bananas_aruco/grid_board.h>
+#include <bananas_aruco/board.h>
 
 namespace world {
 
@@ -41,16 +40,12 @@ class World {
     World(cv::Mat camera_matrix, cv::Mat distortion_coeffs,
           const cv::aruco::Dictionary &dictionary);
 
-    auto addBoard(cv::aruco::Board &&board) -> BoardId;
-    auto addBoard(const board::BoxSettings &settings) -> BoardId;
-    auto addBoard(const board::GridSettings &settings) -> BoardId;
+    auto addBoard(const board::Board &board) -> BoardId;
 
     void makeStatic(BoardId id,
                     const affine_rotation::AffineRotation &board_to_world);
-    auto getStaticEnvironment() const -> const BoardPlacement & {
-        return static_board_placements_;
-    }
 
+    [[nodiscard]]
     auto fit(const cv::Mat &image) const -> FitResult;
 
   private:
