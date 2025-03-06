@@ -41,22 +41,23 @@ void set_transform(Ogre::SceneNode *node,
 
 namespace visualizer {
 
-KeyHandler::KeyHandler(OgreBites::CameraMan *camera_manager)
+Visualizer::KeyHandler::KeyHandler(OgreBites::CameraMan *camera_manager)
     : camera_manager_{camera_manager} {}
 
-auto KeyHandler::mousePressed(const OgreBites::MouseButtonEvent & /*evt*/)
-    -> bool {
+auto Visualizer::KeyHandler::mousePressed(
+    const OgreBites::MouseButtonEvent & /*evt*/) -> bool {
     camera_manager_->setStyle(OgreBites::CameraStyle::CS_FREELOOK);
     return true;
 }
 
-auto KeyHandler::mouseReleased(const OgreBites::MouseButtonEvent & /*evt*/)
-    -> bool {
+auto Visualizer::KeyHandler::mouseReleased(
+    const OgreBites::MouseButtonEvent & /*evt*/) -> bool {
     camera_manager_->setStyle(OgreBites::CameraStyle::CS_MANUAL);
     return true;
 }
 
-InitializedContext::InitializedContext() : OgreBites::ApplicationContext{} {
+Visualizer::InitializedContext::InitializedContext()
+    : OgreBites::ApplicationContext{} {
     initApp();
 }
 
