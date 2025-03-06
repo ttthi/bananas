@@ -1,5 +1,8 @@
 #include <bananas_aruco/visualization/visualizer.h>
 
+#include <algorithm>
+#include <string>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
@@ -9,9 +12,11 @@
 #include <OgreApplicationContext.h>
 #include <OgreCamera.h>
 #include <OgreCameraMan.h>
+#include <OgreColourValue.h>
 #include <OgreEntity.h>
 #include <OgreInput.h>
 #include <OgreLight.h>
+#include <OgreMaterialManager.h>
 #include <OgreMath.h>
 #include <OgreNode.h>
 #include <OgrePrerequisites.h>
@@ -35,6 +40,14 @@ void set_transform(Ogre::SceneNode *node,
     const auto rotation{transform.getRotation()};
     node->setOrientation(Ogre::Quaternion{rotation.w(), rotation.x(),
                                           rotation.y(), rotation.z()});
+}
+
+void set_color(Ogre::MaterialPtr material, float reprojection_error) {
+    Ogre::ColourValue color;
+    const float green_hue{1.0F / 3.0F};
+    color.setHSB(std::clamp(green_hue / reprojection_error, 0.0F, green_hue),
+                 1.0F, 1.0F);
+    material->setDiffuse(color);
 }
 
 } // namespace
@@ -68,7 +81,10 @@ Visualizer::Visualizer()
       static_environment_{
           scene_manager_->getRootSceneNode()->createChildSceneNode()},
       camera_visualization_{
-          scene_manager_->getRootSceneNode()->createChildSceneNode()} {
+          scene_manager_->getRootSceneNode()->createChildSceneNode(),
+          Ogre::MaterialManager::getSingleton().create(
+              "camera_visualization",
+              Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME)} {
     const gsl::not_null<Ogre::RTShader::ShaderGenerator *> shadergen{
         Ogre::RTShader::ShaderGenerator::getSingletonPtr()};
     shadergen->addSceneManager(scene_manager_);
@@ -99,30 +115,36 @@ Visualizer::Visualizer()
 
     const gsl::not_null<Ogre::Entity *> camera_visualization_entity{
         scene_manager_->createEntity(Ogre::SceneManager::PT_CUBE)};
-    camera_visualization_->setScale(0.00025F, 0.00025F, 0.00125F);
-    camera_visualization_->attachObject(camera_visualization_entity);
-    camera_visualization_->setVisible(false);
+    camera_visualization_entity->setMaterial(camera_visualization_.material);
+    camera_visualization_.node->setScale(0.00025F, 0.00025F, 0.00125F);
+    camera_visualization_.node->attachObject(camera_visualization_entity);
+    camera_visualization_.node->setVisible(false);
 }
 
 void Visualizer::update(world::BoardId id,
                         const affine_rotation::AffineRotation &placement) {
-    set_transform(objects_.at(id), placement);
+    set_transform(objects_.at(id).node, placement);
 }
 
 void Visualizer::update(const world::FitResult &fit) {
-    camera_visualization_->setVisible(fit.camera_to_world.has_value());
+    camera_visualization_.node->setVisible(fit.camera_to_world.has_value());
     if (fit.camera_to_world) {
-        set_transform(camera_visualization_, *fit.camera_to_world);
+        set_transform(camera_visualization_.node,
+                      fit.camera_to_world->placement);
+        set_color(camera_visualization_.material,
+                  fit.camera_to_world->reprojection_error);
     }
-    for (const auto &[id, node] : objects_) {
+    for (const auto &[id, object] : objects_) {
         const auto object_placement{fit.dynamic_board_placements.find(id)};
         const bool has_placement{object_placement !=
                                  fit.dynamic_board_placements.cend()};
         if (forced_visible_.find(id) == forced_visible_.end()) {
-            node->setVisible(has_placement);
+            object.node->setVisible(has_placement);
         }
         if (has_placement) {
-            set_transform(node, object_placement->second);
+            set_transform(object.node, object_placement->second.placement);
+            set_color(object.material,
+                      object_placement->second.reprojection_error);
         }
     }
 }
@@ -130,24 +152,32 @@ void Visualizer::update(const world::FitResult &fit) {
 void Visualizer::refresh() { context_.getRoot()->renderOneFrame(); }
 
 void Visualizer::addObject(world::BoardId id, const board::BoxSettings &box) {
+    const auto material{Ogre::MaterialManager::getSingleton().create(
+        "board" + std::to_string(id),
+        Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME)};
     const gsl::not_null<Ogre::Entity *> cube{
         scene_manager_->createEntity(Ogre::SceneManager::PT_CUBE)};
     const gsl::not_null<Ogre::SceneNode *> node{
         scene_manager_->getRootSceneNode()->createChildSceneNode()};
+    cube->setMaterial(material);
 
     node->setScale({0.01F * box.size.width, 0.01F * box.size.height,
                     0.01F * box.size.depth});
     node->attachObject(cube);
     node->setVisible(false);
 
-    objects_.emplace(id, node);
+    objects_.emplace(id, ColoredObject{node, material});
 }
 
 void Visualizer::addObject(world::BoardId id, const board::GridSettings &grid) {
+    const auto material{Ogre::MaterialManager::getSingleton().create(
+        "board" + std::to_string(id),
+        Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME)};
     const gsl::not_null<Ogre::Entity *> plane{
         scene_manager_->createEntity(Ogre::SceneManager::PT_PLANE)};
     const gsl::not_null<Ogre::SceneNode *> node{
         scene_manager_->getRootSceneNode()->createChildSceneNode()};
+    plane->setMaterial(material);
 
     // Make the plane point up (+Y direction) by default.
     const gsl::not_null<Ogre::SceneNode *> child_node{
@@ -160,14 +190,14 @@ void Visualizer::addObject(world::BoardId id, const board::GridSettings &grid) {
     node->setScale(0.005F * board::grid_width(grid),
                    0.005F * board::grid_height(grid), 1.0F);
 
-    objects_.emplace(id, node);
+    objects_.emplace(id, ColoredObject{node, material});
 }
 
 void Visualizer::forceVisible(world::BoardId id) {
     const auto location{objects_.find(id)};
     Expects(location != objects_.cend());
 
-    location->second->setVisible(true);
+    location->second.node->setVisible(true);
     forced_visible_.insert(id);
 }
 
