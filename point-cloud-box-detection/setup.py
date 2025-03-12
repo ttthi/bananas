@@ -1,11 +1,11 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='ply_processor',            # The package name
+    name='ply_processor',
     version='0.1.0',
-    packages=find_packages(),        # This find the ply_processor package
+    packages=find_packages(),
     install_requires=[
-        'open3d==0.19.0',                    # Add dependencies
+        'open3d==0.18.0',
         'numpy==1.26.4',
         'matplotlib==3.9.2',
         'matplotlib-inline==0.1.7'
