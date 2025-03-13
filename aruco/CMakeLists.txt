@@ -5,8 +5,10 @@ project(
   DESCRIPTION "Try to find boxes using ArUco markers"
   LANGUAGES CXX)
 
-# OpenCV depends on the deprecated FindCUDA for some reason
-cmake_policy(SET CMP0146 OLD)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.27")
+  # OpenCV depends on the deprecated FindCUDA for some reason
+  cmake_policy(SET CMP0146 OLD)
+endif()
 
 include(FetchContent)
 FetchContent_Declare(
