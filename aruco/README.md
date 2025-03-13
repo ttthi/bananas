@@ -16,7 +16,7 @@ podman build -t bananas-base:0.0.3 ./containers/aruco-base
 ### Preparing a container
 
 ``` sh
-distrobox create --name bananas-base --image bananas-base:0.0.3
+distrobox create --name bananas-aruco --image bananas-base:0.0.3
 ```
 
 Add `--nvidia` to include support for NVIDIA's proprietary GPU driver.
