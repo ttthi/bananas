@@ -59,6 +59,8 @@ find_package(
 
 find_package(OGRE REQUIRED COMPONENTS Bites CONFIG)
 
+find_package(MAVSDK REQUIRED CONFIG)
+
 option(WITH_ROS2 "Enable ROS2 support" OFF)
 if(WITH_ROS2)
   find_package(ament_cmake CONFIG REQUIRED)
