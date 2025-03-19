@@ -447,11 +447,8 @@ void produce_sdf(std::ostream &out, const std::string &name,
             printer.OpenElement("geometry");
             printer.OpenElement("mesh");
             printer.OpenElement("uri");
-            // NOTE: Gazebo URI file paths are relative to the directory from
-            // which `gz` is executed. Hence, the path must be given either
-            // absolutely or relative to that path for this to work.
             printer.PushText(
-                (std::string{"file://"} + gltf_path.string()).c_str());
+                (std::string{"model://"} + gltf_path.string()).c_str());
             printer.CloseElement(); // </uri>
             printer.CloseElement(); // </mesh>
             printer.CloseElement(); // </geometry>

@@ -11,7 +11,7 @@ target_compile_options(positioner PRIVATE -Wall -Wextra -Wpedantic)
 # NOTE: Can't use PRIVATE/PUBLIC here because ament_target_dependencies doesn't
 # support them.
 target_link_libraries(positioner ${OpenCV_LIBS} aruco_detector aruco_visualizer
-                      Microsoft.GSL::GSL)
+                      Microsoft.GSL::GSL MAVSDK::mavsdk)
 if(WITH_ROS2)
   target_compile_definitions(positioner PRIVATE ENABLE_ROS2)
   ament_target_dependencies(positioner rclcpp std_msgs sensor_msgs cv_bridge

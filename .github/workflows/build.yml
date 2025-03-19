@@ -6,7 +6,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-24.04
     container:
-      image: mainiomano/bananas-base:0.0.3
+      image: mainiomano/bananas-base:0.0.4
     defaults:
       run:
         working-directory: aruco
@@ -33,7 +33,7 @@ jobs:
         if [ ${{ matrix.with_ros2 }} = ON ]; then
           . /opt/ros/jazzy/setup.sh
         fi
-        cmake -GNinja -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DWITH_ROS2=${{ matrix.with_ros2 }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        cmake -GNinja -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DWITH_ROS2=${{ matrix.with_ros2 }} -DCMAKE_PREFIX_PATH='/usr/opencv;/usr/ogre;/usr/cv_bridge;/usr/mavlink' -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
     - name: Build ${{ matrix.compiler }} ${{ matrix.build_type }} WITH_ROS2=${{ matrix.with_ros2 }}
       run: cmake --build build
     - name: Test ${{ matrix.compiler }} ${{ matrix.build_type }} WITH_ROS2=${{ matrix.with_ros2 }}

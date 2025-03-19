@@ -12,6 +12,7 @@
 #ifdef ENABLE_ROS2
 #include <algorithm>
 #include <memory>
+#include <sstream>
 #else // ENABLE_ROS2
 #include <chrono>
 #include <cstdint>
@@ -20,6 +21,7 @@
 #endif // ENABLE_ROS2
 
 #ifdef ENABLE_ROS2
+#include <gsl/assert>
 #include <gsl/pointers>
 #endif // ENABLE_ROS2
 
@@ -39,14 +41,23 @@
 #include <image_transport/image_transport.hpp>
 #include <image_transport/subscriber.hpp>
 #include <rclcpp/executors.hpp>
+#include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
+#include <rclcpp/timer.hpp>
 #include <rclcpp/utilities.hpp>
 #include <rmw/qos_profiles.h>
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #endif // ENABLE_ROS2
 
+#include <mavsdk/component_type.h>
+#include <mavsdk/connection_result.h>
+#include <mavsdk/mavsdk.h>
+#include <mavsdk/plugins/mocap/mocap.h>
+
+#include <bananas_aruco/affine_rotation.h>
 #include <bananas_aruco/concrete_board.h>
+#include <bananas_aruco/mavlink.h>
 #include <bananas_aruco/visualization/visualizer.h>
 #include <bananas_aruco/world.h>
 
@@ -57,25 +68,27 @@ const char *const keys{
     "{env     | <none> | JSON file describing the static environment }"
     "{boards  | <none> | JSON file containing the board descriptions }"
     "{camera  | <none> | JSON file containing the camera information }"
+    "{mavlink |        | Mavlink URL }"
 #ifndef ENABLE_ROS2
     "{@infile | <none> | Input video }"
     "{vo      |        | Video output file }"
 #endif // ENABLE_ROS2
 };
 
-struct CameraCalibration {
+struct CameraConfiguration {
     float focal_length_x{};
     float focal_length_y{};
     float optical_center_x{};
     float optical_center_y{};
     std::vector<float> distortion_coefficients{};
+    affine_rotation::AffineRotation camera_to_drone{};
 };
 
 // Mark to_json as potentially unused to make clang happy. This is ugly, but it
 // works.
 [[maybe_unused]] NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
-    CameraCalibration, focal_length_x, focal_length_y, optical_center_x,
-    optical_center_y, distortion_coefficients);
+    CameraConfiguration, focal_length_x, focal_length_y, optical_center_x,
+    optical_center_y, distortion_coefficients, camera_to_drone);
 
 /// Returns true if the user wants to exit the application. Handles pausing and
 /// blocks until the user unpauses.
@@ -102,21 +115,63 @@ const std::string image_topic{"aruco_camera/image"};
 
 class RosPositioner : public rclcpp::Node {
   public:
-    RosPositioner(world::World &world, visualizer::Visualizer &visualizer)
+    RosPositioner(world::World &world, visualizer::Visualizer &visualizer,
+                  std::shared_ptr<mavsdk::System> mav_system,
+                  affine_rotation::AffineRotation camera_to_drone)
         : Node{node_name, rclcpp::NodeOptions{}}, world_{&world},
           visualizer_{&visualizer},
           image_sub_{image_transport::create_subscription(
               this, image_topic,
               [this](const auto &msg) { return imageCallback(msg); }, "raw",
-              rmw_qos_profile_sensor_data)} {}
+              rmw_qos_profile_sensor_data)},
+          camera_to_drone_{std::move(camera_to_drone)} {
+        if (mav_system) {
+            mocap_.emplace(mav_system);
+            fake_mocap_timer_ = create_wall_timer(
+                std::chrono::milliseconds{20}, [this] { fakeTimerCallback(); });
+            RCLCPP_INFO(this->get_logger(),
+                        "Starting to send fake Mocap data.");
+        }
+    }
 
   private:
+    void
+    sendMocap(const mavsdk::Mocap::VisionPositionEstimate &estimate) const {
+        Expects(mocap_);
+        const auto result{mocap_->set_vision_position_estimate(estimate)};
+        if (result != mavsdk::Mocap::Result::Success) {
+            std::stringstream ss{};
+            ss << result;
+            RCLCPP_ERROR(get_logger(), "Failed to send Mocap data: %s",
+                         ss.str().c_str());
+        }
+    }
+
+    void fakeTimerCallback() const {
+        mavsdk::Mocap::VisionPositionEstimate estimate{};
+        const std::vector<float> covariance_matrix(21);
+        estimate.pose_covariance = {covariance_matrix};
+        sendMocap(estimate);
+    }
+
     void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &msg) {
         const cv::Mat image{
             cv_bridge::toCvShare(msg, static_cast<const char *>(
                                           sensor_msgs::image_encodings::BGR8))
                 ->image};
         const auto fit_result{world_->fit(image)};
+
+        if (fit_result.camera_to_world && mocap_) {
+            if (!fake_mocap_timer_->is_canceled()) {
+                RCLCPP_INFO(this->get_logger(),
+                            "Found camera position. Stopping fake Mocap data.");
+                fake_mocap_timer_->cancel();
+            }
+            const auto estimate{bananas::mavlink::drone_position_estimate(
+                camera_to_drone_, *fit_result.camera_to_world)};
+            sendMocap(estimate);
+        }
+
         visualizer_->update(fit_result);
         visualizer_->refresh();
 
@@ -133,12 +188,16 @@ class RosPositioner : public rclcpp::Node {
     gsl::not_null<world::World *> world_;
     gsl::not_null<visualizer::Visualizer *> visualizer_;
     image_transport::Subscriber image_sub_;
+    affine_rotation::AffineRotation camera_to_drone_{};
+    std::optional<mavsdk::Mocap> mocap_{};
+    rclcpp::TimerBase::SharedPtr fake_mocap_timer_{};
 };
 
 #endif // ENABLE_ROS2
 
 } // namespace
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 auto main(int argc, char *argv[]) -> int {
 #ifdef ENABLE_ROS2
     // Extract the non-ROS arguments.
@@ -177,6 +236,7 @@ auto main(int argc, char *argv[]) -> int {
 
     cv::Mat camera_matrix{};
     cv::Mat distortion_coefficients{};
+    affine_rotation::AffineRotation camera_to_drone{};
     {
         std::ifstream camera_info_stream{camera_file};
         if (!camera_info_stream) {
@@ -184,7 +244,7 @@ auto main(int argc, char *argv[]) -> int {
             return EXIT_FAILURE;
         }
 
-        CameraCalibration camera_info;
+        CameraConfiguration camera_info;
         try {
             const auto json = nlohmann::json::parse(camera_info_stream);
             json.get_to(camera_info);
@@ -203,6 +263,7 @@ auto main(int argc, char *argv[]) -> int {
 
         camera_matrix = std::move(calibration_matrix);
         distortion_coefficients = std::move(distortion_mat);
+        camera_to_drone = camera_info.camera_to_drone;
     }
 
     world::BoardPlacement static_environment{};
@@ -239,6 +300,26 @@ auto main(int argc, char *argv[]) -> int {
         }
     }
 
+    mavsdk::Mavsdk mavsdk{mavsdk::Mavsdk::Configuration{
+        mavsdk::ComponentType::CompanionComputer}};
+    std::shared_ptr<mavsdk::System> mav_system{};
+    if (parser.has("mavlink")) {
+        const auto mavlink_url{parser.get<std::string>("mavlink")};
+        const auto connection_result{mavsdk.add_any_connection(mavlink_url)};
+        if (connection_result != mavsdk::ConnectionResult::Success) {
+            std::cerr << "Failed to open MAVLink connection: "
+                      << connection_result << '\n';
+            return EXIT_FAILURE;
+        }
+        std::cerr << "Waiting until a MAV system is detected\n";
+        while (mavsdk.systems().empty()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds{100});
+        }
+        mav_system = mavsdk.systems().at(0);
+        std::cerr << "Found MAV system with id "
+                  << static_cast<int>(mav_system->get_system_id()) << '\n';
+    }
+
     const auto dictionary{
         cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_100)};
     world::World world{camera_matrix, distortion_coefficients, dictionary};
@@ -262,10 +343,16 @@ auto main(int argc, char *argv[]) -> int {
     cv::namedWindow("out", cv::WINDOW_NORMAL);
 
 #ifdef ENABLE_ROS2
-    const auto node{std::make_shared<RosPositioner>(world, visualizer)};
+    const auto node{std::make_shared<RosPositioner>(
+        world, visualizer, mav_system, camera_to_drone)};
     rclcpp::spin(node);
     rclcpp::shutdown();
 #else
+    std::optional<mavsdk::Mocap> mocap{};
+    if (mav_system) {
+        mocap.emplace(mav_system);
+    }
+
     cv::VideoCapture capture{video_file};
     cv::VideoWriter output{};
     if (video_output_file) {
@@ -286,6 +373,15 @@ auto main(int argc, char *argv[]) -> int {
         }
 
         const auto fit_result{world.fit(image)};
+        if (fit_result.camera_to_world && mocap) {
+            const auto estimate{bananas::mavlink::drone_position_estimate(
+                camera_to_drone, *fit_result.camera_to_world)};
+            const auto result{mocap->set_vision_position_estimate(estimate)};
+            if (result != mavsdk::Mocap::Result::Success) {
+                std::cerr << "Failed to send Mocap data: " << result << '\n';
+            }
+        }
+
         visualizer.update(fit_result);
         visualizer.refresh();
 

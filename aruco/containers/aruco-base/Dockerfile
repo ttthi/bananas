@@ -2,7 +2,7 @@
 # useful both for local testing and as a basis for running the CI on.
 #
 # Updating for CI (needs access to docker.io/mainiomano/bananas-base):
-# VERSION=0.0.3
+# VERSION=0.0.4
 # podman build -t bananas-base:"$VERSION" . && podman push bananas-base:"$VERSION" docker://docker.io/mainiomano/bananas-base:"$VERSION"
 
 FROM ubuntu:24.04
@@ -44,9 +44,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-sensor-msgs \
     && rm -rf /var/lib/apt/lists/*
 
-# Install prebuilt dependencies.
-COPY --from=docker.io/mainiomano/bananas-opencv:0.0.1 /usr/opencv /usr/opencv
+# Install dependencies built in other containers.
+COPY --from=docker.io/mainiomano/bananas-opencv:0.0.2 /usr/opencv /usr/opencv
 COPY --from=docker.io/mainiomano/bananas-ogre:0.0.1 /usr/ogre /usr/ogre
+COPY --from=docker.io/mainiomano/bananas-mavsdk:0.0.1 /usr/mavlink /usr/mavlink
+COPY --from=docker.io/mainiomano/bananas-px4:0.0.1 /usr/px4 /usr/px4
 
 # Build ROS cv_bridge for our OpenCV version.
 WORKDIR /usr/vision_opencv-src

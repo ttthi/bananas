@@ -11,6 +11,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/hal/interface.h>
 #include <opencv2/core/mat.hpp>
@@ -144,8 +147,16 @@ auto World::fitBoard(const std::vector<std::vector<cv::Point2f>> &corners,
     if (num_solutions == 0) {
         return {};
     }
-    return {
-        {reprojection_errors[0], affine_rotation::from_cv(rvecs[0], tvecs[0])}};
+
+    const auto opencv_placement{affine_rotation::from_cv(rvecs[0], tvecs[0])};
+    // The OpenCV camera coordinate system has X right and Y up while we want
+    // them the opposite way around as in the glTF coordinate system. Rotate the
+    // coordinates by 180° around the Z axis.
+    const auto gltf_placement{affine_rotation::AffineRotation{
+                                  Eigen::Vector3f::Zero(),
+                                  Eigen::Quaternionf{0.0F, 0.0F, 0.0F, 1.0F}} *
+                              opencv_placement};
+    return {{reprojection_errors[0], gltf_placement}};
 }
 
 void World::recomputeStaticEnvironment() {
