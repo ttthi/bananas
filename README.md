@@ -1,38 +1,79 @@
-# Setup
+# Robot Setup & Development Guide
 
-## Step 1: Connect to a Monitor and a Keyboard
+## Setup
 
-Connecting via usb with an ssh client also possible
+### Step 1: Connect to a Monitor and Keyboard
+Connect a monitor and keyboard directly to the robot. Alternatively, you can connect via USB using an SSH client.
 
-## Step 2: Boot and login
+### Step 2: Boot and Login
+When the LCD at the back of the robot powers on and displays text, the robot is fully booted. Use the following credentials:
+- **Username**: `jetbot`
+- **Password**: `jetbot`
 
-You know the robot is fully booted when the LCD at the back of the robot powers on and display text. Username and Password are both "jetbot"
+### Step 3: Connect to Wi-Fi
+After logging in, connect to Wi-Fi using:
+```bash
+sudo nmcli device wifi connect "<your_wifi_name>" password "<your_wifi_password>"
+```
 
-## Step 3: Connect to wifi
+The robot should automatically start. You can confirm this by observing logs in the console or by checking if the gripper on the arm moves. If it does not start, run:
+```bash
+sudo systemctl start robot-start.service
+```
 
-Once logged in connect to network by running the following command: sudo nmcli device wifi connect "your wifi name" password "your wifi password".
-The Robot should now start automatically, indicated by the logs in the console or the gripper on the arm moving. If not you can run the command 
-sudo systemctl start robot-start.service in the home directory
+### Step 4 (Optional): SSH into the Robot from Another Device
+For easier development and debugging, you can SSH into the robot once it's on the network:
 
-## Step 4 (Optional): Connect to the robot from an other device with ssh
+1. Note the robot's IP address displayed on the LCD. If none is shown, reboot the robot.
+2. From another device, run:
+   ```bash
+   ssh jetbot@<robot_ip_address>
+   ```
+3. Log in with the same `jetbot` credentials.
 
-This is helpful for development and debuggin as the robot is easier to use from an other device. Once booted the robot should display an ip address at the back of the robot
-if not reboot the robot. Once the ip address is know run the following command on your other device: ssh jetbot@the_ip_at_the_back and login normally
+---
 
-# Development
+## Development
+Once the robot is set up and connected to the internet, it automatically fetches and merges this repository with its local repository on each reboot.
 
-Once the setup is complete, the development of robot codebase can be done on another device. When the robot reboots and connects to the internet it automatically fetches and merges this repository with
-its local repository. If you want to make changes while the robot is running, without having to reboot, you can run the manually start the fetch and start process by doing the following:
-1. Stop the robot from running: sudo systemctl stop robot-start.service 2. Restart the robot: sudo systemctl start robot-start.service
+To manually fetch updates and restart the robot without rebooting:
+1. Stop the robot service:
+   ```bash
+   sudo systemctl stop robot-start.service
+   ```
+2. Start it again:
+   ```bash
+   sudo systemctl start robot-start.service
+   ```
 
-# Troubleshooting
+---
 
-## robot-start.service wont execute
+## Troubleshooting
 
-This means that the BananasRobot software wont update its code base or start. This is most likely because changes were made to the update_and_run.sh shellscript. This resets the permissions of the shellscript and requires them to me manually reset by running this chmod +x update_and_run.sh
-By running sudo systemctl status robot-start.service you can also inspect the logs of the systemservice inorder to debug any errors related to it.
+### `robot-start.service` Doesn't Execute
+If the BananasRobot software fails to start or update, it may be a permission issue with `update_and_run.sh`.
 
-## Pytorch library gives an segmentation fault
+- Restore permissions:
+  ```bash
+  chmod +x update_and_run.sh
+  ```
+- Check the service status:
+  ```bash
+  sudo systemctl status robot-start.service
+  ```
 
-Pytorch library might get corrupted due to limited diskspace?? This wont let the BananasRobot software to start and lead to an import error while importing the pytorch library. To fix this you need to: 1. delete pytorch: pip3 uninstall torch torchvision torchaudio
-2. Reinstall: pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+### PyTorch Library Segmentation Fault
+Limited disk space or corruption may cause PyTorch to fail:
+
+1. Remove PyTorch:
+   ```bash
+   pip3 uninstall torch torchvision torchaudio
+   ```
+2. Reinstall:
+   ```bash
+   pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+   ```
+
+---
+
+For additional issues or improvements, feel free to update this README.
