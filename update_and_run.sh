@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # A shell script for setting permissions and starting the robot
 cd ~/BananasRobot
 git pull origin main
