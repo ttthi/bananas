@@ -1,7 +1,7 @@
 from jetbot import Robot
 from SCSCtrl import TTLServo
-from .SensorInterface import ArduinoInterface
-from .Receiver import Receiver
+from SensorInterface import ArduinoInterface
+from Receiver import Receiver
 import time
 
 class BananasRobot(Robot):

@@ -1,4 +1,8 @@
 # Launcher script
+import os
+import sys
+sys.path.append(os.path.expanduser("~/jetbot")) # Enables import from jetbot
+
 import time
 from BananasRobotMain import BananasRobot
 
