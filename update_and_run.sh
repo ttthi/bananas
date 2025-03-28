@@ -1,11 +1,17 @@
 #!/bin/bash
 
-# A shell script for setting permissions and starting the robot
-cd ~/BananasRobot
-git pull origin main
+# Move to the project directory
+cd ~/BananasRobot || exit
 
-# Enable communication via the top left USB port (where the arduino nano is connected)
+# Force sync with the remote repo (no merge conflicts)
+echo "Updating repo from remote..."
+git fetch origin
+git reset --hard origin/main
+
+# Ensure permissions for Arduino Nano (top-left USB port)
+echo "Setting permissions for /dev/ttyUSB0..."
 sudo chmod 666 /dev/ttyUSB0
 
 # Start the robot
+echo "Starting robot script..."
 python3 run.py
