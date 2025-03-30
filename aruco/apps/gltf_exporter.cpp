@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <ios>
 #include <iostream>
 #include <limits>
 #include <numeric>
@@ -466,7 +467,8 @@ void produce_sdf(std::ostream &out, const std::string &name,
     printer.CloseElement(); // </model>
     printer.CloseElement(); // </sdf>
 
-    out.write(printer.CStr(), printer.CStrSize() - 1);
+    out.write(printer.CStr(),
+              static_cast<std::streamsize>(printer.CStrSize() - 1));
 }
 
 void produce_failed_open_diagnostics(std::ostream &stream,
