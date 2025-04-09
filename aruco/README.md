@@ -60,6 +60,12 @@ to set up the ROS environment and then add `-DWITH_ROS2=ON` to the CMake command
 cmake --build build
 ```
 
+### Generating documentation
+
+Run `doxygen` in the directory of this README. The generated documentation will
+be placed under the `docs/` subdirectory, with `docs/html/index.html` as the
+entrypoint.
+
 ## Usage
 
 ### Positioner

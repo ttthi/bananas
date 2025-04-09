@@ -41,17 +41,29 @@ struct FitResult {
     UncertainPlacement dynamic_board_placements;
 };
 
+/// Our model of the world around us. This model consists of two main parts:
+///
+/// 1. The static environment, i.e., all boards whose exact locations we know.
+///    This is used for finding where the camera is relative to the world.
+/// 2. The dynamic environment, i.e., boxes. The locations and orientations of
+///    these boxes are recomputed every time World::fit() is called.
 class World {
   public:
     // TODO(vainiovano): configurable detector parameters
     World(cv::Mat camera_matrix, cv::Mat distortion_coeffs,
           const cv::aruco::Dictionary &dictionary);
 
+    /// Add the given board to the world.
+    ///
+    /// @return The identifier of the added board.
     auto addBoard(const board::Board &board) -> BoardId;
 
+    /// Move the given board into the static environment, locking its position
+    /// and orientation.
     void makeStatic(BoardId id,
                     const affine_rotation::AffineRotation &board_to_world);
 
+    /// Find the camera and box locations based on the given camera image.
     [[nodiscard]]
     auto fit(const cv::Mat &image) const -> FitResult;
 
