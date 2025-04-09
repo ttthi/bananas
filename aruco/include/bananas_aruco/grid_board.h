@@ -17,6 +17,7 @@ struct GridSize {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(GridSize, num_columns, num_rows);
 
+/// Settings defining the marker locations for a single grid.
 struct GridSettings {
     GridSize size{};
     float marker_side{1.0F};
