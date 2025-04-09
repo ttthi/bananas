@@ -14,9 +14,11 @@
 
 #include <bananas_aruco/board.h>
 
+namespace bananas::board {
+
 namespace {
 
-auto form_box_face(const board::BoxMarkerSettings &face_settings)
+auto form_box_face(const BoxMarkerSettings &face_settings)
     -> std::array<cv::Point2f, 4> {
     const float half_side{face_settings.side / 2.0F};
     std::array<cv::Point2f, 4> face{cv::Point2f{-half_side, -half_side},
@@ -47,8 +49,6 @@ auto form_box_face(const board::BoxMarkerSettings &face_settings)
 const float quarter_circle{std::atan(1.0F) * 2.0F};
 
 } // namespace
-
-namespace board {
 
 void from_json(const nlohmann::json &j, BoxSettings &box_settings) {
     j.at("size").get_to(box_settings.size);
@@ -120,4 +120,4 @@ auto make_board(const BoxSettings &settings) -> board::Board {
     return {std::move(object_points), std::move(ids)};
 }
 
-} // namespace board
+} // namespace bananas::board

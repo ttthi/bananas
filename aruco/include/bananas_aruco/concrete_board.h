@@ -1,5 +1,5 @@
-#ifndef CONCRETE_BOARD_H_
-#define CONCRETE_BOARD_H_
+#ifndef BANANAS_ARUCO_CONCRETE_BOARD_H_
+#define BANANAS_ARUCO_CONCRETE_BOARD_H_
 
 #include <variant>
 
@@ -8,11 +8,11 @@
 #include <bananas_aruco/box_board.h>
 #include <bananas_aruco/grid_board.h>
 
-namespace board {
+namespace bananas::board {
 
 using ConcreteBoard = std::variant<BoxSettings, GridSettings>;
 void from_json(const nlohmann::json &j, ConcreteBoard &board);
 
-} // namespace board
+} // namespace bananas::board
 
-#endif // CONCRETE_BOARD_H_
+#endif // BANANAS_ARUCO_CONCRETE_BOARD_H_
