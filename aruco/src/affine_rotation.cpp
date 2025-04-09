@@ -15,21 +15,16 @@
 namespace bananas::affine_rotation {
 
 AffineRotation::AffineRotation()
-    : translation_{0.0F, 0.0F, 0.0F}, rotation_{1.0F, 0.0F, 0.0F, 0.0F} {};
-AffineRotation::AffineRotation(Eigen::Vector3f translation,
-                               Eigen::Quaternionf rotation)
+    : rotation_{1.0F, 0.0F, 0.0F, 0.0F}, translation_{0.0F, 0.0F, 0.0F} {};
+AffineRotation::AffineRotation(Eigen::Quaternionf rotation,
+                               Eigen::Vector3f translation)
     // NOTE: The moves don't do anything, but clang-tidy doesn't know this.
-    : translation_{std::move(translation)}, rotation_{std::move(rotation)} {};
+    : rotation_{std::move(rotation)}, translation_{std::move(translation)} {};
 
 auto AffineRotation::operator*(const AffineRotation &other) const
     -> AffineRotation {
-    return {translation_ + rotation_ * other.translation_,
-            rotation_ * other.rotation_};
-}
-
-void AffineRotation::operator*=(const AffineRotation &other) {
-    translation_ += rotation_ * other.translation_;
-    rotation_ *= other.rotation_;
+    return {rotation_ * other.rotation_,
+            translation_ + rotation_ * other.translation_};
 }
 
 auto AffineRotation::operator*(cv::Point3f point) const -> cv::Point3f {
@@ -40,7 +35,7 @@ auto AffineRotation::operator*(cv::Point3f point) const -> cv::Point3f {
 
 auto AffineRotation::inverse() const -> AffineRotation {
     const auto rotation_inverse{rotation_.inverse()};
-    return {-(rotation_inverse * translation_), rotation_inverse};
+    return {rotation_inverse, -(rotation_inverse * translation_)};
 }
 
 auto AffineRotation::getTranslation() const -> Eigen::Vector3f {
@@ -52,14 +47,14 @@ auto AffineRotation::getRotation() const -> Eigen::Quaternionf {
 }
 
 void from_json(const nlohmann::json &j, AffineRotation &affine_rotation) {
-    std::array<float, 3> translation{};
-    j.at("translation").get_to(translation);
-
     std::array<float, 4> rotation{};
     j.at("rotation").get_to(rotation);
 
-    affine_rotation = {{translation[0], translation[1], translation[2]},
-                       {rotation[0], rotation[1], rotation[2], rotation[3]}};
+    std::array<float, 3> translation{};
+    j.at("translation").get_to(translation);
+
+    affine_rotation = {{rotation[0], rotation[1], rotation[2], rotation[3]},
+                       {translation[0], translation[1], translation[2]}};
 }
 
 void to_json(nlohmann::json &j, const AffineRotation &affine_rotation) {
@@ -82,7 +77,7 @@ auto from_cv(const cv::Vec3f &rvec, const cv::Vec3f &tvec) -> AffineRotation {
 
     const float angle{rotation_vec.norm()};
     const Eigen::AngleAxisf rotation{angle, rotation_vec / angle};
-    return {translation, Eigen::Quaternionf{rotation}};
+    return {Eigen::Quaternionf{rotation}, translation};
 }
 
 } // namespace bananas::affine_rotation

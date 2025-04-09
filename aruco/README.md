@@ -57,6 +57,12 @@ cmake -GNinja -S . -B build -DCMAKE_PREFIX_PATH='/usr/opencv;/usr/ogre;/usr/cv_b
 cmake --build build
 ```
 
+### Generating documentation
+
+Run `doxygen` in the directory of this README. The generated documentation will
+be placed under the `docs/` subdirectory, with `docs/html/index.html` as the
+entrypoint.
+
 ## Usage
 
 ### Positioner

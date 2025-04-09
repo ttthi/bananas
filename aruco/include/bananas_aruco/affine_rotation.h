@@ -12,28 +12,39 @@
 /// Helpers for working with translations and rotations.
 namespace bananas::affine_rotation {
 
-/// A combination of translation and rotation.
+/// A transform consisting of rotation and translation.
 class AffineRotation {
   public:
-    /// An identity transform.
+    /// The identity transform.
     AffineRotation();
 
-    /// A transform with the given translation and rotation.
-    AffineRotation(Eigen::Vector3f translation, Eigen::Quaternionf rotation);
+    /// The transform with the given rotation and translation.
+    AffineRotation(Eigen::Quaternionf rotation, Eigen::Vector3f translation);
 
+    /// Combine two affine rotations.
+    ///
+    /// @return A transform that has the same effect as first performing the
+    /// transform @p other and then performing this transform.
     auto operator*(const AffineRotation &other) const -> AffineRotation;
-    void operator*=(const AffineRotation &other);
 
+    /// Apply the affine rotation to a point interpreted as a vector.
+    ///
+    /// @return The vector obtained by first rotating @p point by the rotation
+    /// of this transform and then translating it by the translation of this
+    /// transform.
     auto operator*(cv::Point3f point) const -> cv::Point3f;
 
+    /// Return the left inverse of this transform.
     [[nodiscard]] auto inverse() const -> AffineRotation;
 
+    /// Return the translation component of this transform.
     [[nodiscard]] auto getTranslation() const -> Eigen::Vector3f;
+    /// Return the rotation component of this transform.
     [[nodiscard]] auto getRotation() const -> Eigen::Quaternionf;
 
   private:
-    Eigen::Vector3f translation_;
     Eigen::Quaternionf rotation_;
+    Eigen::Vector3f translation_;
 };
 
 void from_json(const nlohmann::json &j, AffineRotation &affine_rotation);

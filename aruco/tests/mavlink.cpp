@@ -21,9 +21,9 @@ constexpr float error_bound{1E-6};
 
 TEST(BananasMavlinkTest, DronePositionEstimateWorks) {
     const affine_rotation::AffineRotation camera_to_drone{
-        Eigen::Vector3f{0.0F, -0.125F, 0.0F},
         Eigen::Quaternionf{
-            Eigen::AngleAxisf{pi / 2.0F, Eigen::Vector3f::UnitX()}}};
+            Eigen::AngleAxisf{pi / 2.0F, Eigen::Vector3f::UnitX()}},
+        Eigen::Vector3f{0.0F, -0.125F, 0.0F}};
 
     for (int x_i{-1}; x_i <= 1; ++x_i) {
         for (int z_i{-1}; z_i <= 1; ++z_i) {
@@ -36,11 +36,10 @@ TEST(BananasMavlinkTest, DronePositionEstimateWorks) {
                              ", yaw = " + std::to_string(yaw));
 
                 const affine_rotation::AffineRotation camera_to_world{
-                    Eigen::Vector3f{x, 0.5F, z},
                     Eigen::Quaternionf{
                         Eigen::AngleAxisf{yaw, Eigen::Vector3f::UnitY()} *
-                        Eigen::AngleAxisf{pi / 2.0F,
-                                          Eigen::Vector3f::UnitX()}}};
+                        Eigen::AngleAxisf{pi / 2.0F, Eigen::Vector3f::UnitX()}},
+                    Eigen::Vector3f{x, 0.5F, z}};
 
                 const auto position_estimate{
                     bananas::mavlink::drone_position_estimate(

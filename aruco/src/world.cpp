@@ -153,8 +153,8 @@ auto World::fitBoard(const std::vector<std::vector<cv::Point2f>> &corners,
     // them the opposite way around as in the glTF coordinate system. Rotate the
     // coordinates by 180° around the Z axis.
     const auto gltf_placement{affine_rotation::AffineRotation{
-                                  Eigen::Vector3f::Zero(),
-                                  Eigen::Quaternionf{0.0F, 0.0F, 0.0F, 1.0F}} *
+                                  Eigen::Quaternionf{0.0F, 0.0F, 0.0F, 1.0F},
+                                  Eigen::Vector3f::Zero()} *
                               opencv_placement};
     return {{reprojection_errors[0], gltf_placement}};
 }
