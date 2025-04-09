@@ -9,7 +9,7 @@
 
 #include <bananas_aruco/board.h>
 
-namespace board {
+namespace bananas::board {
 
 auto grid_width(const GridSettings &settings) -> float {
     return (static_cast<float>(settings.size.num_columns) *
@@ -64,4 +64,4 @@ auto make_board(const GridSettings &settings) -> Board {
     return {std::move(object_points), std::move(ids)};
 }
 
-} // namespace board
+} // namespace bananas::board

@@ -6,6 +6,8 @@
 
 #include <bananas_aruco/grid_board.h>
 
+namespace board = bananas::board;
+
 TEST(GridBoardTest, GridBoardsWork) {
     const board::GridSettings settings{{3, 2}, 1.0F, 0.5F, 5};
     auto board{board::make_board(settings)};

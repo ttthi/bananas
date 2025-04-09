@@ -1,5 +1,5 @@
-#ifndef GRID_BOARD_H_
-#define GRID_BOARD_H_
+#ifndef BANANAS_ARUCO_GRID_BOARD_H_
+#define BANANAS_ARUCO_GRID_BOARD_H_
 
 #include <cstdint>
 
@@ -9,7 +9,7 @@
 
 #include <bananas_aruco/board.h>
 
-namespace board {
+namespace bananas::board {
 
 struct GridSize {
     std::uint32_t num_columns{5};
@@ -35,6 +35,6 @@ auto grid_height(const GridSettings &settings) -> float;
 /// +Y is up and +Z is forward).
 auto make_board(const GridSettings &settings) -> Board;
 
-} // namespace board
+} // namespace bananas::board
 
-#endif // GRID_BOARD_H_
+#endif // BANANAS_ARUCO_GRID_BOARD_H_

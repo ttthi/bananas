@@ -10,6 +10,8 @@
 
 namespace {
 
+namespace affine_rotation = bananas::affine_rotation;
+
 constexpr float pi{3.1415927F};
 // EXPECT_FLOAT_EQ's usage of ULPs gets a bit silly near zero. Let's just use a
 // constant absolute bound instead.

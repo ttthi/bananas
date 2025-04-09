@@ -1,5 +1,5 @@
-#ifndef WORLD_H_
-#define WORLD_H_
+#ifndef BANANAS_ARUCO_WORLD_H_
+#define BANANAS_ARUCO_WORLD_H_
 
 #include <cstdint>
 #include <optional>
@@ -19,7 +19,8 @@
 #include <bananas_aruco/affine_rotation.h>
 #include <bananas_aruco/board.h>
 
-namespace world {
+/// Structures and functions related to the world model.
+namespace bananas::world {
 
 using BoardId = std::uint32_t;
 using BoardPlacement =
@@ -76,6 +77,6 @@ class World {
     std::vector<cv::aruco::Board> all_boards_{};
 };
 
-} // namespace world
+} // namespace bananas::world
 
-#endif // WORLD_H_
+#endif // BANANAS_ARUCO_WORLD_H_

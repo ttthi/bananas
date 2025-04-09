@@ -31,6 +31,8 @@
 #include <bananas_aruco/grid_board.h>
 #include <bananas_aruco/world.h>
 
+namespace bananas::visualizer {
+
 namespace {
 
 void set_transform(Ogre::SceneNode *node,
@@ -51,8 +53,6 @@ void set_color(Ogre::MaterialPtr material, float reprojection_error) {
 }
 
 } // namespace
-
-namespace visualizer {
 
 Visualizer::KeyHandler::KeyHandler(OgreBites::CameraMan *camera_manager)
     : camera_manager_{camera_manager} {}
@@ -201,4 +201,4 @@ void Visualizer::forceVisible(world::BoardId id) {
     forced_visible_.insert(id);
 }
 
-} // namespace visualizer
+} // namespace bananas::visualizer
