@@ -1,5 +1,5 @@
-#ifndef AFFINE_ROTATION_H_
-#define AFFINE_ROTATION_H_
+#ifndef BANANAS_ARUCO_AFFINE_ROTATION_H_
+#define BANANAS_ARUCO_AFFINE_ROTATION_H_
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -9,7 +9,8 @@
 #include <opencv2/core/matx.hpp>
 #include <opencv2/core/types.hpp>
 
-namespace affine_rotation {
+/// Helpers for working with translations and rotations.
+namespace bananas::affine_rotation {
 
 /// A combination of translation and rotation.
 class AffineRotation {
@@ -40,6 +41,6 @@ void to_json(nlohmann::json &j, const AffineRotation &affine_rotation);
 
 auto from_cv(const cv::Vec3f &rvec, const cv::Vec3f &tvec) -> AffineRotation;
 
-} // namespace affine_rotation
+} // namespace bananas::affine_rotation
 
-#endif // AFFINE_ROTATION_H_
+#endif // BANANAS_ARUCO_AFFINE_ROTATION_H_

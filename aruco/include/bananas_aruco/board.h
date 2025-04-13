@@ -1,5 +1,5 @@
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BANANAS_ARUCO_BOARD_H_
+#define BANANAS_ARUCO_BOARD_H_
 
 #include <vector>
 
@@ -7,7 +7,8 @@
 #include <opencv2/objdetect/aruco_board.hpp>
 #include <opencv2/objdetect/aruco_dictionary.hpp>
 
-namespace board {
+/// Structures and functions related to ArUco boards.
+namespace bananas::board {
 
 struct Board {
     std::vector<std::vector<cv::Point3f>> obj_points;
@@ -18,6 +19,6 @@ struct Board {
 auto to_cv(const cv::aruco::Dictionary &dictionary,
            const Board &board) -> cv::aruco::Board;
 
-} // namespace board
+} // namespace bananas::board
 
-#endif // BOARD_H_
+#endif // BANANAS_ARUCO_BOARD_H_

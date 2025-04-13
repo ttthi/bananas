@@ -25,6 +25,8 @@
 #include <bananas_aruco/affine_rotation.h>
 #include <bananas_aruco/board.h>
 
+namespace bananas::world {
+
 namespace {
 
 struct PlacementJson {
@@ -37,8 +39,6 @@ struct PlacementJson {
                                                     board_to_world);
 
 } // namespace
-
-namespace world {
 
 void from_json(const nlohmann::json &j, BoardPlacement &placement) {
     const auto placement_vector{j.get<std::vector<PlacementJson>>()};
@@ -185,4 +185,4 @@ void World::recomputeStaticEnvironment() {
     static_environment_ = {obj_points, *dictionary_, ids};
 }
 
-} // namespace world
+} // namespace bananas::world

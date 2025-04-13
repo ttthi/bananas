@@ -1,5 +1,5 @@
-#ifndef VISUALIZER_H_
-#define VISUALIZER_H_
+#ifndef BANANAS_ARUCO_VISUALIZER_H_
+#define BANANAS_ARUCO_VISUALIZER_H_
 
 #include <unordered_map>
 #include <unordered_set>
@@ -22,7 +22,8 @@
 #include <bananas_aruco/grid_board.h>
 #include <bananas_aruco/world.h>
 
-namespace visualizer {
+/// World model visualization tools.
+namespace bananas::visualizer {
 
 class Visualizer {
   public:
@@ -77,6 +78,6 @@ class Visualizer {
     std::unordered_set<world::BoardId> forced_visible_{};
 };
 
-} // namespace visualizer
+} // namespace bananas::visualizer
 
-#endif // VISUALIZER_H_
+#endif // BANANAS_ARUCO_VISUALIZER_H_

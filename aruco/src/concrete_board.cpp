@@ -8,7 +8,7 @@
 #include <bananas_aruco/box_board.h>
 #include <bananas_aruco/grid_board.h>
 
-namespace board {
+namespace bananas::board {
 
 void from_json(const nlohmann::json &j, ConcreteBoard &board) {
     const auto type{j.at("type").get<std::string>()};
@@ -21,4 +21,4 @@ void from_json(const nlohmann::json &j, ConcreteBoard &board) {
     }
 }
 
-} // namespace board
+} // namespace bananas::board

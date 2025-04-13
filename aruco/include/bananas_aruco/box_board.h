@@ -1,5 +1,5 @@
-#ifndef BOX_BOARD_H_
-#define BOX_BOARD_H_
+#ifndef BANANAS_ARUCO_BOX_BOARD_H_
+#define BANANAS_ARUCO_BOX_BOARD_H_
 
 #include <array>
 #include <vector>
@@ -8,7 +8,7 @@
 
 #include <bananas_aruco/board.h>
 
-namespace board {
+namespace bananas::board {
 
 /// Settings defining the location of a single marker relative to a box face.
 struct BoxMarkerSettings {
@@ -65,6 +65,6 @@ void from_json(const nlohmann::json &j, BoxSettings &box_settings);
 /// glTF coordinate system: +X is left, +Y is up and +Z is forward.
 auto make_board(const BoxSettings &settings) -> Board;
 
-} // namespace board
+} // namespace bananas::board
 
-#endif // BOX_BOARD_H_
+#endif // BANANAS_ARUCO_BOX_BOARD_H_

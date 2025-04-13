@@ -12,7 +12,7 @@
 #include <opencv2/core/matx.hpp>
 #include <opencv2/core/types.hpp>
 
-namespace affine_rotation {
+namespace bananas::affine_rotation {
 
 AffineRotation::AffineRotation()
     : translation_{0.0F, 0.0F, 0.0F}, rotation_{1.0F, 0.0F, 0.0F, 0.0F} {};
@@ -85,4 +85,4 @@ auto from_cv(const cv::Vec3f &rvec, const cv::Vec3f &tvec) -> AffineRotation {
     return {translation, Eigen::Quaternionf{rotation}};
 }
 
-} // namespace affine_rotation
+} // namespace bananas::affine_rotation

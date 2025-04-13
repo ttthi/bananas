@@ -42,6 +42,8 @@
 
 namespace {
 
+namespace board = bananas::board;
+
 const char *const about{
     "Generate binary glTF and SDF files from a set of ArUco marker placements"};
 const char *const keys{

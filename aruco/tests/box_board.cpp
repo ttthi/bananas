@@ -18,6 +18,8 @@ using namespace nlohmann::json_literals;
 
 namespace {
 
+namespace board = bananas::board;
+
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 MATCHER(PointsEq, std::string{"are "} + (negation ? "not " : "") +
                       "approximately equal points") {

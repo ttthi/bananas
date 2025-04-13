@@ -63,6 +63,11 @@
 
 namespace {
 
+namespace affine_rotation = bananas::affine_rotation;
+namespace board = bananas::board;
+namespace world = bananas::world;
+namespace visualizer = bananas::visualizer;
+
 const char *const about{"Find camera and box locations from a video"};
 const char *const keys{
     "{env     | <none> | JSON file describing the static environment }"
