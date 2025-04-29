@@ -212,3 +212,27 @@ the `MIS_TAKEOFF_ALT` parameter to the wanted target altitude and write
 `commander takeoff` on the PX4 console to manually take off. If you want to fly
 a mission, then starting the mission in QGroundControl will make the drone take
 off as expected.
+
+#### demo_world demo
+
+![demo_world screenshot](https://github.com/user-attachments/assets/f5c33946-f673-49a8-8b65-41a0f7f5420d)
+
+Similar to drone_world, but `drone_world` needs to be replaced with `demo_world`
+in the Gazebo and positioner startup. To keep the drone altitude sane, I
+recommend setting the takeoff altitude (`MIS_TAKEOFF_ALT` parameter,
+configurable in QGroundControl) to 0.2 m and taking off from the PX4 console
+using `commander takeoff`.
+
+##### Gazebo startup
+
+``` sh
+GZ_SIM_RESOURCE_PATH=$(pwd)/build/gazebo/demo_world:$(pwd)/gazebo/PX4-gazebo-models/models gz sim demo_world.sdf
+```
+
+##### Positioner startup
+
+``` sh
+. /opt/ros/jazzy/setup.bash
+ros2 run ros_gz_bridge parameter_bridge /world/demo_world/model/x500_mono_cam_down_0/link/camera_link/sensor/imager/image@sensor_msgs/msg/Image[gz.msgs.Image &
+./apps/positioner -boards=gazebo/demo_world/boards.json -env=gazebo/demo_world/static_environment.json -camera=gazebo/demo_world/camera.json -mavlink=udpin://0.0.0.0:14540 --ros-args -r aruco_camera/image:=/world/demo_world/model/x500_mono_cam_down_0/link/camera_link/sensor/imager/image --
+```
