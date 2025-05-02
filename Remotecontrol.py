@@ -3,26 +3,16 @@ import math
 import sys
 from Sender import Sender
 from IKsolver import *
+from robot_config import (
+    STABILIZE_LAST, LENGTHS, REL_ANGLES, NUM_JOINTS, BASE_ANGLE,
+    MIN_ANGLES, MAX_ANGLES, MAX_ITER, DST_THRESHOLD, BASE_POS
+)
 
 # shit UI program to control the robot remotely
 
 # Replace the IP with the ip from the robot
-handler = Sender(target_ip="192.168.159.157", target_port=5001)
+handler = Sender(target_ip="192.168.0.63", target_port=5001)
 handler.start()
-
-# Params for the arm
-STABILIZE_LAST = True
-LENGTHS = [95, 59, 104]
-REL_ANGLES = [0, 0, 0]
-NUM_JOINTS = len(REL_ANGLES)
-BASE_ANGLE = 0
-# Limits for the arm
-MIN_ANGLES = [-math.pi / 2, -5 * math.pi / 6, -5 * math.pi / 6]
-MAX_ANGLES = [3 * math.pi / 2, 5 * math.pi / 6, 5 * math.pi / 6]
-# Parms for the kinematic algorithm
-MAX_ITER = 10
-DST_TRESHOLD = 0.01
-BASE_POS = (0, 0)
 
 pygame.init()
 
@@ -101,12 +91,13 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = pygame.mouse.get_pos()
                 target_pos = detransformXY(mx, my)
+                print(target_pos)
 
                 if STABILIZE_LAST:
                     t_angles = ccd_inverse_kinematics(
                         REL_ANGLES[:-1], LENGTHS, BASE_POS, (target_pos[0] - LENGTHS[-1], target_pos[1]),
                         MAX_ITER,
-                        MIN_ANGLES, MAX_ANGLES, DST_TRESHOLD
+                        MIN_ANGLES, MAX_ANGLES, DST_THRESHOLD
                     )
 
                     t_angles.append(-get_absolute_angles(t_angles)[-1])
@@ -115,7 +106,7 @@ def main():
                     REL_ANGLES = ccd_inverse_kinematics(
                         REL_ANGLES, LENGTHS, BASE_POS, target_pos,
                         MAX_ITER,
-                        MIN_ANGLES, MAX_ANGLES, DST_TRESHOLD
+                        MIN_ANGLES, MAX_ANGLES, DST_THRESHOLD
                     )
 
                 update_arm()
