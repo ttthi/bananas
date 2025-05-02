@@ -18,7 +18,7 @@ sudo nmcli device wifi connect "<your_wifi_name>" password "<your_wifi_password>
 
 The robot should automatically start. You can confirm this by observing logs in the console or by checking if the gripper on the arm moves. If it does not start, run:
 ```bash
-sudo systemctl start robot-start.service
+sudo systemctl start robot-startup.service
 ```
 
 ### Step 4 (Optional): SSH into the Robot from Another Device
@@ -39,11 +39,11 @@ Once the robot is set up and connected to the internet, it automatically fetches
 To manually fetch updates and restart the robot without rebooting:
 1. Stop the robot service:
    ```bash
-   sudo systemctl stop robot-start.service
+   sudo systemctl stop robot-startup.service
    ```
 2. Start it again:
    ```bash
-   sudo systemctl start robot-start.service
+   sudo systemctl start robot-startup.service
    ```
 
 ---
@@ -59,7 +59,7 @@ If the BananasRobot software fails to start or update, it may be a permission is
   ```
 - Check the service status:
   ```bash
-  sudo systemctl status robot-start.service
+  sudo systemctl status robot-startup.service
   ```
 
 ### PyTorch Library Segmentation Fault
