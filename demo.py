@@ -3,6 +3,8 @@ import time
 import math
 import subprocess
 import threading
+import os #works on Windows
+import subprocess
 from Sender import Sender
 from robot_config import (
     STABILIZE_LAST, LENGTHS, REL_ANGLES, MIN_ANGLES,
@@ -26,6 +28,7 @@ def confirm_step(text):
 def send_arm_pose(sender, base_angle, rel_angles):
     degs = [int(math.degrees(a)) for a in rel_angles]
     command = f"set:{base_angle},{','.join(map(str, degs))}"
+    print(command)
     sender.send_tcp_data(command)
 
 def main():
@@ -44,6 +47,7 @@ def main():
         # Step 0: Move to initial position
         print("Step 0: Initial Pos")
         send_arm_pose(sender, base_angle=0, rel_angles=LIFTED_ANGLES)
+        sender.send_tcp_data("open")
         confirm_step("Robot in initial pos?")
 
         # Step 1: Move to box position
@@ -77,13 +81,25 @@ def main():
         send_arm_pose(sender, base_angle=-90, rel_angles=PICKUP_ANGLES)
         confirm_step("Arm lowered?")
 
+        # Prompt user
+        answer = input("Is the arm lowered correctly? (y = yes, n = open GUI): ").strip().lower()
+        if answer == 'n':
+            sender.stop()
+            print("Launching manual control GUI for adjustment...")
+
+            gui_path = os.path.join(os.getcwd(), "Remotecontrol.py")
+            subprocess.Popen(["start", "python", gui_path], shell=True)
+
+            input("Press Enter when you're done adjusting and ready to continue...")
+            sender.start()
+
         # Step 7: Open claw
         print("Step 7: Opening claw")
         sender.send_tcp_data("open")
         confirm_step("Box placed?")
 
         # Step 8: Lift claw
-        print("Step 3: Lifting box")
+        print("Step 8: Lifting box")
         send_arm_pose(sender, base_angle=90, rel_angles=LIFTED_ANGLES)
         confirm_step("Claw lifted?")
 
