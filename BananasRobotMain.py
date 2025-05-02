@@ -116,6 +116,16 @@ class BananasRobot(Robot):
         time.sleep(t)
         self.stop()
 
+    def fs(self, steps):
+        self.set_motors(self.power_left, self.power_right)
+        self.arduino.send_and_receive(f"countdown:{steps}", timeout=100)
+        self.stop()
+
+    def bs(self, steps):
+        self.set_motors(-self.power_left, -self.power_right)
+        self.arduino.send_and_receive(f"countdown:{steps}", timeout=100)
+        self.stop()
+
     def set_azimuth(self, ang):
         TTLServo.servoAngleCtrl(1, ang + self.azimuth_offset, 1, 50)
 
