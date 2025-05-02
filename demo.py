@@ -8,7 +8,7 @@ import subprocess
 from Sender import Sender
 from robot_config import (
     STABILIZE_LAST, LENGTHS, REL_ANGLES, MIN_ANGLES,
-    MAX_ANGLES, BASE_POS, MAX_ITER, DST_THRESHOLD
+    MAX_ANGLES, BASE_POS, MAX_ITER, DST_THRESHOLD, BASE_ANGLE
 )
 
 # IP & port (could be moved to config if reused often)
@@ -31,6 +31,10 @@ def send_arm_pose(sender, base_angle, rel_angles):
     print(command)
     sender.send_tcp_data(command)
 
+    # Save pose to file for GUI sync
+    with open("pose.txt", "w") as f:
+        f.write(f"{base_angle}," + ",".join(map(str, degs)))
+
 def main():
     sender = Sender(ROBOT_IP, ROBOT_PORT)
     sender.start()
@@ -39,8 +43,6 @@ def main():
     confirm_step("Start demo")
 
     stack_count = 0
-    BASE_ANGLE = 0
-
     while True:
         print(f"\n=== Starting stack cycle #{stack_count + 1} ===")
 

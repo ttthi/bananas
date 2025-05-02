@@ -40,6 +40,10 @@ def update_arm():
         msg = "set:" + str(BASE_ANGLE) + "," + list_to_str(map(lambda x: int(math.degrees(x)), REL_ANGLES))
         print(msg)
         handler.send_tcp_data(msg)
+
+        with open("pose.txt", "w") as f:
+            f.write(str(BASE_ANGLE) + "," + list_to_str(map(lambda x: int(math.degrees(x)), REL_ANGLES)))
+
     except KeyboardInterrupt:
         handler.stop()
 
@@ -47,6 +51,15 @@ def main():
     global BASE_ANGLE
     global REL_ANGLES
     running = True
+
+    try:
+        with open("pose.txt", "r") as f:
+            parts = f.read().strip().split(",")
+            BASE_ANGLE = int(parts[0])
+            REL_ANGLES = [math.radians(int(p)) for p in parts[1:]]
+            print(f"Loaded saved pose: BASE={BASE_ANGLE}, REL_ANGLES={REL_ANGLES}")
+    except Exception as e:
+        print(f"No saved pose found or failed to load: {e}")
 
     joint_positions = forward_kinematics(REL_ANGLES, LENGTHS, BASE_POS)
 
