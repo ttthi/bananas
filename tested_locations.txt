@@ -1,0 +1,37 @@
+first block: -90, -17,0,17, 0 steps forward
+second block: -90, -17,0,17, 6  steps forward
+third block:  -90, -17,0,17, 12  steps forward
+
+4th block: -90,6,-82,76, 0 steps forward
+5th block: -90,6,-82,76, 6 steps forward
+6th block: -90,6,-82,76, 12 steps forward
+
+7th block: -90,5,-131,125, 0 steps forward
+8th block: -90,5,-131,125, 6 steps forward
+9th block: -90,5,-131,125, 12 steps forward
+
+10th block: -90,-9,0,9, 0 steps forward
+
+
+6 steps between?
+
+bottom floor column:
+-90, -17,0,17
+-90,6,-82,76
+-90,5,-131,125
+
+second floor column:
+-90,-9,0,9
+-90,27,-88,60
+-90,2,7,-10
+
+converted:
+
+Block Col   Floor  Steps   Final X     Final Y
+------------------------------------------------------------
+1     1     1      0       251.27      -45.03
+2     1     2      0       256.10      -24.09
+3     2     1      6       252.77      -47.32
+4     2     2      6       257.25      -10.29
+5     3     1      12      243.98      -41.27
+6     3     2      12      337.24      10.73
