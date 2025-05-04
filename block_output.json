@@ -1,0 +1,68 @@
+[
+  {
+    "column": 1,
+    "floor": 1,
+    "steps_backward": 12,
+    "target_xy_mm": [
+      171.23,
+      -45.03
+    ],
+    "base_angle": -90,
+    "block": 1
+  },
+  {
+    "column": 2,
+    "floor": 1,
+    "steps_backward": 6,
+    "target_xy_mm": [
+      172.73,
+      -47.32
+    ],
+    "base_angle": -90,
+    "block": 2
+  },
+  {
+    "column": 3,
+    "floor": 1,
+    "steps_backward": 0,
+    "target_xy_mm": [
+      163.94,
+      -41.27
+    ],
+    "base_angle": -90,
+    "block": 3
+  },
+  {
+    "column": 1,
+    "floor": 2,
+    "steps_backward": 12,
+    "target_xy_mm": [
+      176.06,
+      -24.09
+    ],
+    "base_angle": -90,
+    "block": 4
+  },
+  {
+    "column": 2,
+    "floor": 2,
+    "steps_backward": 6,
+    "target_xy_mm": [
+      177.21,
+      -10.29
+    ],
+    "base_angle": -90,
+    "block": 5
+  },
+  {
+    "column": 3,
+    "floor": 2,
+    "steps_backward": 0,
+    "target_xy_mm": [
+      257.2,
+      10.73
+    ],
+    "base_angle": -90,
+    "block": 6
+  }
+]
