@@ -51,7 +51,7 @@ def main():
     sender = Sender(ROBOT_IP, ROBOT_PORT)
     sender.start()
 
-    with open("block_output.json") as f:
+    with open("block_output_computed.json") as f:
         targets = json.load(f)
 
     print("=== Box Stacking Demo (Using JSON Targets) ===")
