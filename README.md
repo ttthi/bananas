@@ -33,6 +33,42 @@ For easier development and debugging, you can SSH into the robot once it's on th
 
 ---
 
+
+## Usage
+
+### Method 1: SSH Control
+
+Once an SSH connection has been established with the robot, you can control it via the Python console. Navigate to the `BananasRobot` directory and execute the following commands:
+
+```python
+from BananasRobotMain import BananasRobot
+robot = BananasRobot()
+```
+
+You can now issue various commands using the `robot` object. For more information on available methods and capabilities, refer to the `BananasRobotMain.py` file.
+
+---
+
+### Method 2: TCP Text Interface
+
+On startup, the robot automatically runs the `update_and_run.sh` script, which:
+
+1. Updates the codebase.
+2. Starts the `run.py` script in the background, which in turn creates a `robot` object.
+
+The `robot` object also provides a basic TCP-based text interface for controlling the robot. By default, it listens for incoming TCP connections on **port 5001** and processes textual commands sent over those connections. Supported commands include:
+
+- `set:a1,a2,a3,a4` — Set the angles of the arm joints.
+- `forward:dst` — Move the robot forward by `dst` centimeters.
+- `backward:dst` — Move the robot backward by `dst` centimeters.
+- `open` — Open the claw.
+- `close` — Close the claw.
+
+A basic Python GUI for controlling the robot over TCP is available at:  
+[https://github.com/mmjm27/Bananas-robot-controls](https://github.com/mmjm27/Bananas-robot-controls)
+
+---
+
 ## Development
 Once the robot is set up and connected to the internet, it automatically fetches and merges this repository with its local repository on each reboot.
 
