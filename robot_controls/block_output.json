@@ -1,0 +1,50 @@
+[
+  {
+    "block": 1,
+    "column": 1,
+    "row": 1,
+    "floor": 1,
+    "steps_backward": 10,
+    "target_xy": [
+      251.27,
+      -45.03
+    ],
+    "base_angle": -90
+  },
+  {
+    "block": 2,
+    "column": 1,
+    "row": 2,
+    "floor": 1,
+    "steps_backward": 5,
+    "target_xy": [
+      251.27,
+      -45.03
+    ],
+    "base_angle": -90
+  },
+  {
+    "block": 4,
+    "column": 2,
+    "row": 1,
+    "floor": 1,
+    "steps_backward": 10,
+    "target_xy": [
+      212.75,
+      -47.32
+    ],
+    "base_angle": -90
+  },
+  {
+    "block": 5,
+    "column": 2,
+    "row": 2,
+    "floor": 1,
+    "steps_backward": 5,
+    "target_xy": [
+      212.75,
+      -47.32
+    ],
+    "base_angle": -90
+  }
+]
