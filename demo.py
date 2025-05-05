@@ -4,7 +4,6 @@ import math
 import subprocess
 import os
 import json
-from target_loader import load_targets_from_json
 from IKsolver import ccd_inverse_kinematics, get_absolute_angles
 from Sender import Sender
 from robot_config import (
@@ -71,6 +70,8 @@ def main():
         print("Step 0: Initial Pos")
         send_arm_pose(sender, base_angle=0, rel_angles=LIFTED_ANGLES)
         sender.send_tcp_data("open")
+        sender.send_tcp_data("open")
+        sender.send_tcp_data("open")
 
         while True: #TODO: use arduino pos instead for more accurate results
             move = input("Adjust robot position? (F=forward, B=backward, Enter=confirm): ").strip().lower()
@@ -90,6 +91,8 @@ def main():
 
         # Step 2: Close claw
         print("Step 2: Closing claw")
+        sender.send_tcp_data("close")
+        sender.send_tcp_data("close")
         sender.send_tcp_data("close")
         time.sleep(2.5)
 
@@ -127,12 +130,14 @@ def main():
         # Step 7: Open claw
         print("Step 7: Opening claw")
         sender.send_tcp_data("open")
+        sender.send_tcp_data("open")
+        sender.send_tcp_data("open")
 
         # Step 8: Lift claw before rotating or moving again
         print("Step 8: Lifting claw")
         send_arm_pose(sender, base_angle=target["base_angle"], rel_angles=LIFTED_ANGLES)
-        time.sleep(5)
         send_arm_pose(sender, base_angle=0, rel_angles=LIFTED_ANGLES)
+        time.sleep(10)
 
         # Step 9: Move robot forward to start position
         print(f"Step 9: Moving robot forward {backward_steps} steps to reset")
