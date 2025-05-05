@@ -1,29 +1,36 @@
 # user_input.py
 
 def get_user_selected_blocks():
-    print("Available block types:")
-    print("  1. cube, 3.8cm")
-    #print("  2. Rectangle")
+    print("Select block types from the following:")
+    print("1. cube, 3.8cm")
+    choice = input("Enter the number corresponding to the block type: ").strip()
+    if choice == '1':
+        return ['cube, 3.8cm']
+    else:
+        print("Invalid choice. Defaulting to cube.")
+        return ['cube, 3.8cm']
 
-    block_mapping = {
-        "1": "cube, 3.8cm",
-        #"2": "rectangle",
-    }
-
-    selected = []
+def get_block_metadata():
+    print("Specify block physical properties.")
     while True:
-        choices = input("Enter the numbers of the block types you want to use (comma-separated, e.g., 1, 2...): ")
         try:
-            indices = [choice.strip() for choice in choices.split(',')]
-            for idx in indices:
-                if idx in block_mapping:
-                    selected.append(block_mapping[idx])
-                else:
-                    print(f"Invalid choice: {idx}")
-                    break
-            else:
-                break  # all were valid
-        except Exception as e:
-            print(f"Error: {e}. Try again.")
+            width = float(input("Block width (cm): "))
+            length = float(input("Block length (cm): "))
+            height = float(input("Block height (cm): "))
+            break
+        except ValueError:
+            print("Invalid input. Enter numeric values.")
 
-    return selected
+    while True:
+        try:
+            clearance_x = float(input("Required clearance on X-axis (cm): "))
+            clearance_y = float(input("Required clearance on Y-axis (cm): "))
+            clearance_z = float(input("Required clearance on Z-axis (cm): "))
+            break
+        except ValueError:
+            print("Invalid input. Enter numeric values.")
+
+    return {
+        "dimensions": [width, length, height],
+        "clearance": [clearance_x, clearance_y, clearance_z]
+    }

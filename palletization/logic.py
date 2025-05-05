@@ -2,11 +2,13 @@
 
 import json
 from configurations import BLOCK_TYPES, generate_configurations
-from user_input import get_user_selected_blocks
+from user_input import get_user_selected_blocks, get_block_metadata
 
-def save_configurations(configs, pallet_size, filename="configurations.json"):
+def save_configurations(configs, pallet_size, block_meta, filename="configurations.json"):
     output = {
         "pallet_size": list(pallet_size),
+        "block_dimensions": block_meta["dimensions"],
+        "clearance": block_meta["clearance"],
         "configurations": [
             [(block_type, list(position)) for block_type, position in config]
             for config in configs
@@ -18,9 +20,10 @@ def save_configurations(configs, pallet_size, filename="configurations.json"):
 
 def main():
     # Pallet size (cm)
-    pallet_size = (15, 15, 15) # width, length, height
+    pallet_size = (10, 10, 15)  # width, length, height
 
     selected_blocks = get_user_selected_blocks()
+    block_meta = get_block_metadata()
 
     while True:
         try:
@@ -39,8 +42,7 @@ def main():
         return
 
     print(f"Generated {total_configurations} configurations.")
-
-    save_configurations(configs_list, pallet_size)
+    save_configurations(configs_list, pallet_size, block_meta)
     print("Configurations saved to configurations.json.")
 
 if __name__ == "__main__":
