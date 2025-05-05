@@ -2,75 +2,69 @@
 import math
 import json
 
+#TODO: FIX NOT WORKING CORRECTLY
+
 # --- Arm Parameters ---
 LENGTHS = [95, 59, 104]  # in mm
 BASE_POS = (0, 0)
-STEP_DISTANCE_MM = 6.67  # each step, approx. 6.67mm
-STEP_UNITS_PER_COLUMN = 6
+STEP_DISTANCE_MM = 6.67  # each step
+STEP_UNITS_PER_ROW = 6
 
 def forward_kinematics(rel_angles, lengths, base_pos):
     x, y = base_pos
     theta = 0
-    positions = []
-    for i in range(len(rel_angles)):
-        theta += rel_angles[i]
-        x += lengths[i] * math.cos(theta)
-        y += lengths[i] * math.sin(theta)
-        positions.append((x, y))
-    return positions
+    for angle, length in zip(rel_angles, lengths):
+        theta += angle
+        x += length * math.cos(theta)
+        y += length * math.sin(theta)
+    return round(x, 2), round(y, 2)
 
 def main():
-    columns = [
-        [  # Column 1
-            [-90, -17, 0, 17],
-            [-90, -9, 0, 9]
-        ],
-        [  # Column 2
-            [-90, 6, -82, 76],
-            [-90, 27, -88, 60]
-        ],
-        [  # Column 3
-            [-90, 5, -131, 125],
-            [-90, 2, 7, -10]
-        ]
+    # Angles for each block placement
+    base_angles = [
+        [-90, -17, 0, 17],
+        [-90, 6, -82, 76],
+        [-90, 5, -131, 125],
+        [-90, -9, 0, 9],
+        [-90, 27, -88, 60],
+        [-90, 2, 7, -10],
     ]
 
-    unsorted_data = []
+    blocks = []
+    block_num = 1
+    index = 0
 
-    for col_index, column in enumerate(columns):
-        # Calculate backward steps from rightmost (col 3) to leftmost (col 1)
-        steps_backward = (2 - col_index) * STEP_UNITS_PER_COLUMN
-        step_mm = steps_backward * STEP_DISTANCE_MM
+    print(f"{'Block':<6}{'Col':<6}{'Row':<6}{'Floor':<7}{'StepsBack':<12}{'Target X':<10}{'Target Y':<10}")
+    print("-" * 60)
 
-        for floor_index, angles_deg in enumerate(column):
-            base_angle_deg, *rel_angles_deg = angles_deg
-            rel_angles_rad = [math.radians(a) for a in rel_angles_deg]
-            joint_positions = forward_kinematics(rel_angles_rad, LENGTHS, BASE_POS)
-            if joint_positions:
-                x, y = joint_positions[-1]
-                x -= step_mm  # subtract since robot starts from front
-                unsorted_data.append({
+    for floor in range(1, 2):  # 1 floor for now
+        for col_index in range(3):  # columns: left to right
+            for row_index in range(3): # rows: far to near (backward steps)
+                steps_backward = (2 - row_index) * STEP_UNITS_PER_ROW
+                if index >= len(base_angles):
+                    break
+                base_angle_deg, *rel_angles_deg = base_angles[index]
+                rel_angles_rad = [math.radians(a) for a in rel_angles_deg]
+                x, y = forward_kinematics(rel_angles_rad, LENGTHS, BASE_POS)
+                x += col_index * 10  # simulate column spacing
+
+                blocks.append({
+                    "block": block_num,
                     "column": col_index + 1,
-                    "floor": floor_index + 1,
+                    "row": row_index + 1,
+                    "floor": floor,
                     "steps_backward": steps_backward,
-                    "target_xy_mm": [round(x, 2), round(y, 2)],
+                    "target_xy": [x, y],
                     "base_angle": base_angle_deg
-                    # "joint_angles_deg": rel_angles_deg
                 })
+                print(
+                f"{block_num:<6}{col_index + 1:<6}{row_index + 1:<6}{floor:<7}{steps_backward:<12}{x:<10.2f}{y:<10.2f}")
 
-    # Sort by floor first, then column
-    sorted_data = sorted(unsorted_data, key=lambda d: (d["floor"], d["column"]))
+                block_num += 1
+                index += 1
 
-    print(f"{'Block':<6}{'Col':<6}{'Floor':<7}{'StepsBack':<12}{'Final X':<12}{'Final Y':<12}")
-    print("-" * 70)
-
-    for block_num, item in enumerate(sorted_data, 1):
-        x, y = item["target_xy_mm"]
-        print(f"{block_num:<6}{item['column']:<6}{item['floor']:<7}{item['steps_backward']:<12}{x:<12.2f}{y:<12.2f}")
-        item["block"] = block_num
-
-    with open("block_output.json", "w") as json_file:
-        json.dump(sorted_data, json_file, indent=2)
+    with open("block_output.json", "w") as f:
+        json.dump(blocks, f, indent=2)
 
 if __name__ == "__main__":
     main()

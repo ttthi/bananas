@@ -86,16 +86,16 @@ def main():
         # Step 1: Move arm
         print("Step 1: Moving arm to pick up position")
         send_arm_pose(sender, base_angle=0, rel_angles=PICKUP_ANGLES)
+        confirm_step("Claw over box?")
 
         # Step 2: Close claw
         print("Step 2: Closing claw")
         sender.send_tcp_data("close")
-        time.sleep(1.5)
+        time.sleep(2.5)
 
         # Step 3: Lift box
         print("Step 3: Lifting box")
         send_arm_pose(sender, base_angle=0, rel_angles=LIFTED_ANGLES)
-        time.sleep(1)
 
         # Step 4: Move robot back
         print("Step 4: Moving robot backward")
@@ -106,7 +106,7 @@ def main():
         # Step 5: Rotate base to target base angle
         print(f"Step 5: Rotating base to {target['base_angle']}°")
         send_arm_pose(sender, base_angle=target["base_angle"], rel_angles=LIFTED_ANGLES)
-        time.sleep(5)
+        time.sleep(10)
 
         # Step 6: Lower arm using target coordinates
         print(f"Step 6: Lowering box to ({target['target_xy'][0]}, {target['target_xy'][1]})")
@@ -130,8 +130,9 @@ def main():
 
         # Step 8: Lift claw before rotating or moving again
         print("Step 8: Lifting claw")
-        send_arm_pose(sender, base_angle=0, rel_angles=LIFTED_ANGLES)
+        send_arm_pose(sender, base_angle=target["base_angle"], rel_angles=LIFTED_ANGLES)
         time.sleep(5)
+        send_arm_pose(sender, base_angle=0, rel_angles=LIFTED_ANGLES)
 
         # Step 9: Move robot forward to start position
         print(f"Step 9: Moving robot forward {backward_steps} steps to reset")
