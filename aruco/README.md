@@ -93,7 +93,8 @@ Drive](https://drive.google.com/drive/folders/1jW_gUaRNqzDQmUnwXLOY9ooAgiT-EK1z?
 - The Gazebo integration requires the project built with `-DWITH_ROS2=ON`.
 - Gazebo must not be run from a shell session in which
   `/opt/ros/jazzy/setup.bash` has been sourced, or `gz` won't find the `sim`
-  subcommand.
+  subcommand. Hence, if you have just built the project with ROS support, you
+  should run Gazebo from a different shell instance.
 - Gazebo will freeze if you have are using a firewall that blocks multicast
   traffic. Example for temporarily allowing multicast on `firewalld`:
 
