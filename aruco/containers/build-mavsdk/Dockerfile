@@ -1,6 +1,3 @@
-# Updating the prebuilt version (needs access to docker.io/mainiomano/bananas-mavsdk):
-# VERSION=0.0.1
-# podman build -t bananas-mavsdk:"$VERSION" . && podman push bananas-mavsdk:"$VERSION" docker://docker.io/mainiomano/bananas-mavsdk:"$VERSION"
 FROM ubuntu:24.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

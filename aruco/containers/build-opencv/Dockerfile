@@ -1,8 +1,4 @@
 # Dockerfile for building a recent version of OpenCV on Ubuntu 24.04.
-#
-# Updating the prebuilt version (needs access to docker.io/mainiomano/bananas-opencv):
-# VERSION=0.0.2
-# podman build -t bananas-opencv:"$VERSION" . && podman push bananas-opencv:"$VERSION" docker://docker.io/mainiomano/bananas-opencv:"$VERSION"
 
 FROM ubuntu:24.04
 
