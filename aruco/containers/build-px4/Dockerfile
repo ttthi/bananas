@@ -1,7 +1,3 @@
-# Updating the prebuilt version (needs access to docker.io/mainiomano/bananas-px4):
-# VERSION=0.0.1
-# podman build -t bananas-px4:"$VERSION" . && podman push bananas-px4:"$VERSION" docker://docker.io/mainiomano/bananas-px4:"$VERSION"
-
 FROM ubuntu:24.04
 
 ADD --chown=_apt https://packages.osrfoundation.org/gazebo.gpg /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg

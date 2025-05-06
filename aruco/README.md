@@ -13,10 +13,10 @@ git submodule update --init
 - podman
 - distrobox
 
-### Preparing the image
+### Building the images
 
 ``` sh
-podman build -t bananas-base:0.0.4 ./containers/aruco-base
+./build_images.sh
 ```
 
 ### Preparing a container

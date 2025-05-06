@@ -1,8 +1,4 @@
 # Dockerfile for building a recent version of OGRE on Ubuntu 24.04.
-#
-# Updating the prebuilt version (needs access to docker.io/mainiomano/bananas-ogre):
-# VERSION=0.0.1
-# podman build -t bananas-ogre:"$VERSION" . && podman push bananas-ogre:"$VERSION" docker://docker.io/mainiomano/bananas-ogre:"$VERSION"
 
 FROM ubuntu:24.04
 
