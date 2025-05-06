@@ -92,8 +92,6 @@ def main():
         # Step 2: Close claw
         print("Step 2: Closing claw")
         sender.send_tcp_data("close")
-        sender.send_tcp_data("close")
-        sender.send_tcp_data("close")
         time.sleep(2.5)
 
         # Step 3: Lift box
@@ -130,14 +128,11 @@ def main():
         # Step 7: Open claw
         print("Step 7: Opening claw")
         sender.send_tcp_data("open")
-        sender.send_tcp_data("open")
-        sender.send_tcp_data("open")
 
         # Step 8: Lift claw before rotating or moving again
         print("Step 8: Lifting claw")
         send_arm_pose(sender, base_angle=target["base_angle"], rel_angles=LIFTED_ANGLES)
-        send_arm_pose(sender, base_angle=0, rel_angles=LIFTED_ANGLES)
-        time.sleep(10)
+        confirm_step("Arm lifted?")
 
         # Step 9: Move robot forward to start position
         print(f"Step 9: Moving robot forward {backward_steps} steps to reset")

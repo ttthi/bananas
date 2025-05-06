@@ -39,7 +39,7 @@ def main():
         delta_y = y_mm - min_y * 10
         delta_z = z_mm - min_z * 10
 
-        target_x = BASE_X + delta_y
+        target_x = BASE_X - delta_y
         target_y = BASE_Y + delta_z
 
         output_blocks.append({
