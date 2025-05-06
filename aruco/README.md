@@ -12,6 +12,7 @@ git submodule update --init
 
 - podman
 - distrobox
+- A GPU driver supported by distrobox and matching hardware
 
 ### Building the images
 
