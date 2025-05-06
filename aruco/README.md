@@ -40,19 +40,15 @@ distrobox enter bananas-aruco
 From inside the Distrobox container, run
 
 ``` sh
+# Remove the following line if you don't need ROS support.
+. /opt/ros/jazzy/setup.bash
 cmake -GNinja -S . -B build -DCMAKE_PREFIX_PATH='/usr/opencv;/usr/ogre;/usr/cv_bridge;/usr/mavlink' \
                             -DCMAKE_BUILD_TYPE=Release \
                             -DBUILD_TESTING=OFF \
-                            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+                            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+                            # Set to OFF if you don't need ROS support.
+                            -DWITH_ROS2=ON
 ```
-
-If you want to include ROS support, run
-
-``` sh
-. /opt/ros/jazzy/setup.bash
-```
-
-to set up the ROS environment and then add `-DWITH_ROS2=ON` to the CMake command.
 
 ### Compilation
 
