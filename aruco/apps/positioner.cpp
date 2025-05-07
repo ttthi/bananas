@@ -89,11 +89,19 @@ struct CameraConfiguration {
     affine_rotation::AffineRotation camera_to_drone{};
 };
 
-// Mark to_json as potentially unused to make clang happy. This is ugly, but it
-// works.
-[[maybe_unused]] NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
-    CameraConfiguration, focal_length_x, focal_length_y, optical_center_x,
-    optical_center_y, distortion_coefficients, camera_to_drone);
+// clang doesn't like the fact that the generated to_json is unused when using
+// nlohmann_json 3.11.
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#endif // __clang__
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(CameraConfiguration, focal_length_x,
+                                   focal_length_y, optical_center_x,
+                                   optical_center_y, distortion_coefficients,
+                                   camera_to_drone);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif // __clang__
 
 /// Returns true if the user wants to exit the application. Handles pausing and
 /// blocks until the user unpauses.

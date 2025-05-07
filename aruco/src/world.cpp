@@ -33,10 +33,17 @@ struct PlacementJson {
     std::uint32_t id{};
     affine_rotation::AffineRotation board_to_world{};
 };
-// Mark to_json as potentially unused to make clang happy. This is ugly, but it
-// works.
-[[maybe_unused]] NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PlacementJson, id,
-                                                    board_to_world);
+
+// clang doesn't like the fact that the generated to_json is unused when using
+// nlohmann_json 3.11.
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#endif // __clang__
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PlacementJson, id, board_to_world);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif // __clang__
 
 } // namespace
 
