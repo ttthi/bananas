@@ -32,7 +32,16 @@ For easier development and debugging, you can SSH into the robot once it's on th
 3. Log in with the same `jetbot` credentials.
 
 ---
+### Step 5: Troubleshooting Wi-Fi
+If connecting to Wi-Fi using nmcli didn't work, try clearing known connections:
+```bash
+sudo rm /etc/NetworkManager/system-connections/*.nmconnection"
+```
 
+After this restart NetworkManager
+```bash
+sudo systemctl restart NetworkManager
+```
 
 ## Usage
 
