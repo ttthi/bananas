@@ -75,17 +75,19 @@ with ROS support:
 - A JSON file containing the camera parameters
 - An input video to analyze if `WITH_ROS2` is not enabled
 
-The file formats are currently not documented. An example configuration is
-available at [Google
-Drive](https://drive.google.com/drive/folders/1jW_gUaRNqzDQmUnwXLOY9ooAgiT-EK1z?usp=drive_link).
+The file formats are currently not documented, but their structure is somewhat
+simple. Example configurations are available in the [gazebo](gazebo/)
+subdirectory.
 
-#### Non-ROS
+#### Running with a prerecorded input video
+
+##### Non-ROS
 
 ``` sh
 ./build/apps/positioner -boards=boards.json -env=static_environment.json -camera=camera.json video.mp4
 ```
 
-#### ROS
+##### ROS
 
 ``` sh
 . /opt/ros/jazzy/setup.bash
@@ -111,6 +113,12 @@ Drive](https://drive.google.com/drive/folders/1jW_gUaRNqzDQmUnwXLOY9ooAgiT-EK1z?
 
 #### box_world demo
 
+![box_world screenshot](https://github.com/user-attachments/assets/3fb09ce6-482a-4460-916a-921bc582887f)
+
+This demo shows how to define a camera in Gazebo and read its image through ROS.
+It replicates the physical demo available on [Google
+Drive](https://drive.google.com/file/d/1ZGzvk3Pro302nx5kvyeuDO0ZOaWG-0qF/view?usp=drive_link).
+
 ##### Gazebo startup
 
 In one shell instance, start up Gazebo with the main SDF file. Example, run from
@@ -134,6 +142,10 @@ ros2 run ros_gz_bridge parameter_bridge /world/box_world/model/camera/link/link/
 ```
 
 #### drone_world demo
+
+![drone_world screenshot](https://github.com/user-attachments/assets/78b603c7-f4aa-433f-a881-7bb3ed8049cd)
+
+This demo shows how a drone can be positioned using ArUco markers.
 
 ##### Component startup
 
@@ -196,6 +208,7 @@ commander set_ekf_origin 60.184933 24.828757 0.0
 Start up all the required software and connect QGroundControl to the drone (no
 need to run it inside the container). Don't use QGroundControl's "Takeoff"
 button to take off since it forces a minimum altitude of 10 meters. Instead, set
-the `MIS_TAKEOFF_ALT` parameter if needed and use `commander takeoff` on the PX4
-console if you want to perform a manual take off. If you want to fly a mission,
-then starting the mission is enough to make the drone take off.
+the `MIS_TAKEOFF_ALT` parameter to the wanted target altitude and write
+`commander takeoff` on the PX4 console to manually take off. If you want to fly
+a mission, then starting the mission in QGroundControl will make the drone take
+off as expected.
