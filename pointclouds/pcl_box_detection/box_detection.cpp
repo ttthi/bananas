@@ -1,3 +1,5 @@
+// Detect planes from the point clouds in ./basic-clouds using RANSAC.
+
 #include <format>
 #include <iostream>
 #include <memory>

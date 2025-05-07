@@ -1,3 +1,5 @@
+// Store pointclouds from a DepthAI stereo camera into /dev/shm/.
+
 #include <format>
 #include <iostream>
 #include <memory>

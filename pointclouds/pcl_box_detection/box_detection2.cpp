@@ -1,3 +1,6 @@
+// Detect planes from the point clouds in ./basic-clouds using region growing
+// segmentation.
+
 #include <cstddef>
 #include <format>
 #include <iostream>
