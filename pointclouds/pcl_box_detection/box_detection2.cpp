@@ -131,7 +131,7 @@ int main() {
           cloud, normals, 4, 5.0f, "normals", v1);
     }
 
-    viewer->spinOnce(100000);
+    viewer->spinOnce(1000);
 
     if (viewer->wasStopped()) {
       break;

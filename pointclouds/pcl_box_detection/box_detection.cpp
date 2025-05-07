@@ -76,6 +76,7 @@ int main() {
     }
 
     auto planes{find_planes(*cloud)};
+    std::cout << std::flush;
     if (first) {
       viewer->addPointCloud<pcl::PointXYZ>(cloud, "cloud", v1);
       int i = 0;
@@ -102,7 +103,7 @@ int main() {
       }
     }
 
-    viewer->spinOnce(10000000);
+    viewer->spinOnce(1000);
 
     if (viewer->wasStopped()) {
       break;
